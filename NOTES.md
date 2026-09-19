@@ -1,0 +1,1 @@
+1. use next.js, vercel cloud functions, scss, radix ui for modals. and build me a simple frontend backend.

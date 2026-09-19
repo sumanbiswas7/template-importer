@@ -1,0 +1,114 @@
+$bg: #f7f7f8;
+$surface: #fff;
+$text: #16161a;
+$muted: #6b6b76;
+$border: #e2e2e8;
+$accent: #4f46e5;
+$danger: #dc2626;
+$radius: 10px;
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: $bg;
+  color: $text;
+  font: 15px/1.5 system-ui, -apple-system, sans-serif;
+}
+
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 16px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+
+  h1 { margin: 0; font-size: 24px; }
+}
+
+.muted { color: $muted; }
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.card {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: $radius;
+
+  h2 { margin: 0 0 6px; font-size: 16px; }
+  pre { margin: 0; white-space: pre-wrap; color: $muted; font: inherit; }
+}
+
+.btn {
+  padding: 8px 14px;
+  border: 1px solid $border;
+  border-radius: 8px;
+  background: $surface;
+  font: inherit;
+  cursor: pointer;
+  align-self: flex-start;
+
+  &:hover { background: #f0f0f3; }
+  &:disabled { opacity: 0.6; cursor: default; }
+
+  &--primary {
+    background: $accent;
+    border-color: $accent;
+    color: #fff;
+    &:hover { background: #4338ca; }
+  }
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.4);
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(480px, calc(100vw - 32px));
+  padding: 24px;
+  background: $surface;
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgb(0 0 0 / 0.25);
+
+  &__title { margin: 0 0 4px; font-size: 18px; }
+  &__desc { margin: 0 0 16px; color: $muted; }
+}
+
+.form {
+  display: grid;
+  gap: 14px;
+
+  label { display: grid; gap: 4px; font-weight: 500; }
+
+  input, textarea {
+    padding: 8px 10px;
+    border: 1px solid $border;
+    border-radius: 8px;
+    font: inherit;
+    &:focus { outline: 2px solid $accent; outline-offset: -1px; }
+  }
+
+  &__error { margin: 0; color: $danger; }
+  &__actions { display: flex; justify-content: flex-end; gap: 8px; }
+}
