@@ -3,10 +3,11 @@
 import { IconChevronRight, IconPlus } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import CommentCard from "./CommentCard";
+import CommentDialog from "./CommentDialog";
 import SortableList from "./Sortable";
 import EditableTitle from "./EditableTitle";
 import {
-  COMMENT_TYPES, newComment, reorderGroup, uid,
+  COMMENT_TYPES, newComment, plainText, reorderGroup, uid,
   type Comment, type CommentType, type Subsection,
 } from "@/lib/template";
 
@@ -19,6 +20,7 @@ export default function SubsectionPanel({
   onOpenSection: () => void;
   onChange: (next: Subsection) => void;
 }) {
+  const [isNew, setIsNew] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(focusId ?? null);
   const { comments } = subsection;
 
@@ -34,6 +36,15 @@ export default function SubsectionPanel({
     const c = newComment(type);
     setComments([...comments, c]);
     setEditingId(c.id);
+    setIsNew(true);
+  }
+
+  function closeDialog() {
+    // A brand-new comment that was never filled in is dropped rather than left as a blank card.
+    const c = comments.find((x) => x.id === editingId);
+    if (isNew && c && !c.name.trim() && !plainText(c.text)) setComments(comments.filter((x) => x !== c));
+    setEditingId(null);
+    setIsNew(false);
   }
 
   function duplicate(c: Comment) {
@@ -45,6 +56,7 @@ export default function SubsectionPanel({
   function remove(c: Comment) {
     if (!window.confirm(`Delete “${c.name || "Untitled comment"}”?`)) return;
     setComments(comments.filter((x) => x.id !== c.id));
+    if (editingId === c.id) closeDialog();
   }
 
   return (
@@ -83,9 +95,7 @@ export default function SubsectionPanel({
                   <CommentCard
                     comment={c}
                     handle={handle}
-                    editing={editingId === c.id}
-                    onToggleEdit={() => setEditingId(editingId === c.id ? null : c.id)}
-                    onChange={(p) => patch(c.id, p)}
+                    onEdit={() => setEditingId(c.id)}
                     onDuplicate={() => duplicate(c)}
                     onDelete={() => remove(c)}
                   />
@@ -95,6 +105,18 @@ export default function SubsectionPanel({
           </section>
         );
       })}
+
+      {(() => {
+        const editing = comments.find((c) => c.id === editingId) ?? null;
+        return (
+          <CommentDialog
+            comment={editing}
+            onChange={(p) => editing && patch(editing.id, p)}
+            onDelete={() => editing && remove(editing)}
+            onClose={closeDialog}
+          />
+        );
+      })()}
     </>
   );
 }

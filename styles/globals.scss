@@ -258,7 +258,10 @@ h1, h2 { letter-spacing: -0.02em; }
   position: fixed;
   inset: 0;
   background: rgb(10 10 10 / 0.45);
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(6px);
+
+  &[data-state="open"] { animation: overlay-in 0.2s ease-out; }
+  &[data-state="closed"] { animation: overlay-out 0.16s ease-in forwards; }
 }
 
 .modal {
@@ -272,6 +275,9 @@ h1, h2 { letter-spacing: -0.02em; }
   border: $border;
   border-radius: 20px;
   box-shadow: 0 24px 60px rgb(10 10 10 / 0.25);
+
+  &[data-state="open"] { animation: modal-in 0.26s cubic-bezier(0.16, 1, 0.3, 1); }
+  &[data-state="closed"] { animation: modal-out 0.16s ease-in forwards; }
 
   &__title { margin: 0 0 4px; font-size: 20px; font-weight: 650; }
   &__desc { margin: 0 0 20px; color: $muted; }
@@ -297,4 +303,18 @@ h1, h2 { letter-spacing: -0.02em; }
 
   &__error { margin: 0; color: $danger; }
   &__actions { display: flex; justify-content: flex-end; gap: 8px; }
+}
+
+@keyframes overlay-in { from { opacity: 0; backdrop-filter: blur(0); } to { opacity: 1; backdrop-filter: blur(6px); } }
+@keyframes overlay-out { from { opacity: 1; backdrop-filter: blur(6px); } to { opacity: 0; backdrop-filter: blur(0); } }
+@keyframes modal-in {
+  from { opacity: 0; transform: translate(-50%, -47%) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes modal-out {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to { opacity: 0; transform: translate(-50%, -48%) scale(0.97); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .overlay, .modal { animation: none !important; }
 }

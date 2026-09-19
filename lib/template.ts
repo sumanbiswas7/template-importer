@@ -83,3 +83,19 @@ export function reorderGroup<T extends { id: string }>(all: T[], next: T[]): T[]
   let i = 0;
   return all.map((c) => (ids.has(c.id) ? next[i++] : c));
 }
+
+/** Comment text is stored as HTML (rich text); this gives a one-line plain version for previews. */
+export function plainText(html: string): string {
+  return html
+    .replace(/<\/(p|div|li|h[1-6])>/gi, " ")
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}

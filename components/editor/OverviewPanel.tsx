@@ -3,7 +3,7 @@
 import { IconChevronRight } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import { TYPE_ICON } from "./CommentCard";
-import { COMMENT_TYPES, countComments, type CommentType, type Section } from "@/lib/template";
+import { COMMENT_TYPES, countComments, plainText, type CommentType, type Section } from "@/lib/template";
 
 const PAGE = 10;
 
@@ -22,7 +22,7 @@ export default function OverviewPanel({
     const byType: Record<CommentType, Row[]> = { defect: [], info: [], limit: [] };
     for (const s of tree) for (const sub of s.subsections) for (const c of sub.comments) {
       byType[c.type].push({
-        id: c.id, name: c.name, text: c.text,
+        id: c.id, name: c.name, text: plainText(c.text),
         sectionId: s.id, sectionName: s.name, subsectionId: sub.id, subsectionName: sub.name,
       });
     }
