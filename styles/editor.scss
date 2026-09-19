@@ -54,9 +54,14 @@ $limit: #dfd365;
   &__link { padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; &:hover { color: $text; text-decoration: underline; } }
 }
 
-.save {
-  display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: $muted;
-  &--error { color: $danger; }
+.savebar {
+  // Zero-height sticky row: the controls are nudged down 23px so they centre on the 46px title line.
+  position: sticky; top: 0; z-index: 20; height: 0; display: flex; justify-content: flex-end; align-items: center; gap: 12px;
+  > * { position: relative; top: 23px; }
+  .btn { padding: 6px 12px; font-size: 14px; gap: 6px; box-shadow: 0 2px 8px rgb(0 0 0 / 0.12); }
+  &__ok, &__error { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 550; }
+  &__ok { padding: 6px 12px; border-radius: 8px; background: $bg; border: $border; color: #2c7a3f; }
+  &__error { color: $danger; }
 }
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -330,3 +335,4 @@ $limit: #dfd365;
     a { color: #3a6fd1; text-decoration: underline; }
   }
 }
+.modal__spacer { flex: 1; }

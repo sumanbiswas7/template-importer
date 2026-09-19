@@ -1,6 +1,6 @@
 "use client";
 
-import { IconArrowLeft, IconCheck, IconLoader2, IconAlertCircle } from "@tabler/icons-react";
+import { IconAlertCircle, IconArrowLeft, IconCheck, IconDeviceFloppy, IconLoader2 } from "@tabler/icons-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -11,19 +11,20 @@ import TreeNav, { type Selection } from "./TreeNav";
 import { mapSection, mapSubsection, type Section } from "@/lib/template";
 import "@/styles/editor.scss";
 
-type Status = "saved" | "saving" | "error";
-const SAVE_DELAY = 700;
+type Status = "idle" | "saving" | "saved" | "error";
 
 export default function Editor({ id }: { id: string }) {
   const [name, setName] = useState("");
   const [tree, setTree] = useState<Section[] | null>(null);
   const [missing, setMissing] = useState(false);
   const [selection, setSelection] = useState<Selection>(null);
-  const [status, setStatus] = useState<Status>("saved");
+  const [dirty, setDirty] = useState(false);
+  const [status, setStatus] = useState<Status>("idle");
 
-  // Latest unsaved edit, flushed on a debounce and when leaving the page.
-  const pending = useRef<{ name: string; tree: Section[] } | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Refs mirror state so back-to-back edits in one tick merge into the latest values.
+  const nameRef = useRef("");
+  const treeRef = useRef<Section[]>([]);
+  const version = useRef(0); // bumps on every edit, so a save can tell if newer edits arrived mid-flight
 
   useEffect(() => {
     fetch(`/api/templates?id=${encodeURIComponent(id)}`)
@@ -38,52 +39,53 @@ export default function Editor({ id }: { id: string }) {
       .catch(() => setMissing(true));
   }, [id]);
 
-  // Refs mirror state so back-to-back edits in one tick merge into the latest values.
-  const nameRef = useRef("");
-  const treeRef = useRef<Section[]>([]);
+  const edit = useCallback((next: { name?: string; tree?: Section[] }) => {
+    if (next.name !== undefined) { nameRef.current = next.name; setName(next.name); }
+    if (next.tree) { treeRef.current = next.tree; setTree(next.tree); }
+    version.current++;
+    setDirty(true);
+    setStatus("idle");
+  }, []);
 
-  const flush = useCallback(async () => {
-    clearTimeout(timer.current);
-    const body = pending.current;
-    if (!body) return;
-    pending.current = null;
+  const save = useCallback(async () => {
+    const saved = version.current;
     setStatus("saving");
     try {
       const res = await fetch(`/api/templates?id=${encodeURIComponent(id)}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ name: nameRef.current, tree: treeRef.current }),
       });
       if (!res.ok) throw new Error();
-      setStatus(pending.current ? "saving" : "saved");
+      if (version.current === saved) setDirty(false);
+      setStatus("saved");
     } catch {
-      pending.current ??= body; // retry with the next edit
       setStatus("error");
     }
   }, [id]);
 
-  const edit = useCallback((next: { name?: string; tree?: Section[] }) => {
-    if (next.name !== undefined) { nameRef.current = next.name; setName(next.name); }
-    if (next.tree) { treeRef.current = next.tree; setTree(next.tree); }
-    pending.current = { name: nameRef.current, tree: treeRef.current };
-    setStatus("saving");
-    clearTimeout(timer.current);
-    timer.current = setTimeout(flush, SAVE_DELAY);
-  }, [flush]);
+  // Hide the "Saved" confirmation after a moment.
+  useEffect(() => {
+    if (status !== "saved") return;
+    const t = setTimeout(() => setStatus("idle"), 1800);
+    return () => clearTimeout(t);
+  }, [status]);
 
   useEffect(() => {
-    // Leaving the page with unsaved edits: ask first (a request can't reliably outlive the page).
-    const warn = (e: BeforeUnloadEvent) => {
-      if (!pending.current) return;
-      flush();
-      e.preventDefault();
+    const warn = (e: BeforeUnloadEvent) => { if (dirty) e.preventDefault(); };
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (dirty && status !== "saving") save();
+      }
     };
     window.addEventListener("beforeunload", warn);
+    window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("beforeunload", warn);
-      flush(); // client-side navigation: the request completes normally
+      window.removeEventListener("keydown", onKey);
     };
-  }, [flush]);
+  }, [dirty, status, save]);
 
   if (missing) {
     return (
@@ -103,23 +105,42 @@ export default function Editor({ id }: { id: string }) {
     <div className="editor">
       <aside className="editor__side">
         <div className="editor__side-head">
-          <Link href="/" className="back"><IconArrowLeft size={18} /> Back to templates</Link>
+          <Link
+            href="/"
+            className="back"
+            onClick={(e) => {
+              if (dirty && !window.confirm("You have unsaved changes. Leave without saving?")) e.preventDefault();
+            }}
+          >
+            <IconArrowLeft size={18} /> Back to templates
+          </Link>
           <input
             className="editor__name"
             value={name}
             aria-label="Template name"
             onChange={(e) => edit({ name: e.target.value })}
           />
-          <span className={`save save--${status}`}>
-            {status === "saved" && <><IconCheck size={14} /> Saved</>}
-            {status === "saving" && <><IconLoader2 size={14} className="spin" /> Saving…</>}
-            {status === "error" && <><IconAlertCircle size={14} /> Couldn’t save — will retry on next edit</>}
-          </span>
         </div>
         <TreeNav tree={tree} selection={selection} onSelect={setSelection} onChange={(t) => edit({ tree: t })} />
       </aside>
 
       <main className="editor__main">
+        {(dirty || status === "saved") && (
+          <div className="savebar">
+            {status === "error" && (
+              <span className="savebar__error"><IconAlertCircle size={16} /> Couldn’t save. Try again.</span>
+            )}
+            {status === "saved" && !dirty ? (
+              <span className="savebar__ok"><IconCheck size={15} /> Saved</span>
+            ) : (
+              <button className="btn btn--primary" onClick={save} disabled={status === "saving"}>
+                {status === "saving"
+                  ? <><IconLoader2 size={16} className="spin" /> Saving…</>
+                  : <><IconDeviceFloppy size={16} /> Save</>}
+              </button>
+            )}
+          </div>
+        )}
         {subsection && section ? (
           <>
             <SubsectionPanel

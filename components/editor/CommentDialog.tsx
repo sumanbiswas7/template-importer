@@ -2,11 +2,11 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import {
-  IconTrash, IconX, IconAlertTriangle, IconArrowDown, IconArrowUp, IconCalendar, IconCheckbox, IconCircleOff,
+  IconTrash, IconX, IconRestore, IconAlertTriangle, IconArrowDown, IconArrowUp, IconCalendar, IconCheckbox, IconCircleOff,
   IconEqual, IconHash, IconInfoCircle, IconLock, IconQuestionMark, IconArrowsHorizontal,
   IconToggleLeft, IconTypography,
 } from "@tabler/icons-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import RichTextEditor from "./RichTextEditor";
 import Segmented, { type SegOption } from "./Segmented";
 import type { Category, Comment, CommentType } from "@/lib/template";
@@ -38,53 +38,83 @@ const answerOptions = (current: string): SegOption<string>[] => {
   }));
 };
 
-// Edits apply live (the editor autosaves); "Done" just closes the dialog.
+// Edits go to a local draft. Nothing reaches the template until "Done" (which then makes the
+// editor's Save button appear); closing any other way discards the draft.
 export default function CommentDialog({
-  comment, onChange, onDelete, onClose,
+  comment, isNew, onSave, onDelete, onClose,
 }: {
-  comment: Comment | null;
-  onChange: (patch: Partial<Comment>) => void;
+  comment: Comment | null; // the comment as it was when the dialog opened
+  isNew: boolean;
+  onSave: (draft: Comment) => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
   // Keep showing the last comment while the close animation plays.
   const last = useRef(comment);
   if (comment) last.current = comment;
-  const shown = comment ?? last.current;
+  const base = comment ?? last.current;
+
+  const [draft, setDraft] = useState<Comment | null>(comment);
+  const [draftFor, setDraftFor] = useState(comment?.id);
+  const [resets, setResets] = useState(0); // remounts the rich text editor on reset
+  if (comment && comment.id !== draftFor) {
+    setDraftFor(comment.id);
+    setDraft(comment);
+  }
+
+  const shown = draft && base && draft.id === base.id ? draft : base;
+  const changed = !!shown && !!base && JSON.stringify(shown) !== JSON.stringify(base);
+  const patch = (p: Partial<Comment>) => setDraft((d) => (d ? { ...d, ...p } : d));
+
+  function reset() {
+    setDraft(base);
+    setResets((n) => n + 1);
+  }
+
+  function requestClose() {
+    if (changed && !window.confirm("Discard your changes to this comment?")) return;
+    onClose();
+  }
 
   return (
-    <Dialog.Root open={comment !== null} onOpenChange={(open) => !open && onClose()}>
+    <Dialog.Root open={comment !== null} onOpenChange={(open) => !open && requestClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="overlay" />
         <Dialog.Content className="modal modal--wide" aria-describedby={undefined}>
           {shown && (
             <>
               <div className="modal__bar">
-                <Dialog.Title className="modal__title">Edit comment</Dialog.Title>
+                <Dialog.Title className="modal__title">{isNew ? "New comment" : "Edit comment"}</Dialog.Title>
                 <Dialog.Close className="icon-btn" aria-label="Close"><IconX size={20} /></Dialog.Close>
               </div>
               <div className="comment__form">
                 <label className="field">
                   Name
-                  <input value={shown.name} autoFocus onChange={(e) => onChange({ name: e.target.value })} />
+                  <input value={shown.name} autoFocus onChange={(e) => patch({ name: e.target.value })} />
                 </label>
                 <div className="field">
                   <span className="field__label">Comment text</span>
-                  <RichTextEditor key={shown.id} value={shown.text} onChange={(text) => onChange({ text })} />
+                  <RichTextEditor key={`${shown.id}-${resets}`} value={shown.text} onChange={(text) => patch({ text })} />
                 </div>
-                <Segmented label="Type" value={shown.type} options={TYPE_OPTIONS} onChange={(type) => onChange({ type })} />
+                <Segmented label="Type" value={shown.type} options={TYPE_OPTIONS} onChange={(type) => patch({ type })} />
                 <Segmented label="Category" value={shown.category || "none"} options={CATEGORY_OPTIONS}
-                  onChange={(c) => onChange({ category: c === "none" ? "" : (c as Category) })} />
+                  onChange={(c) => patch({ category: c === "none" ? "" : (c as Category) })} />
                 <Segmented label="Answer type" value={shown.answerType}
-                  options={answerOptions(shown.answerType)} onChange={(answerType) => onChange({ answerType })} />
+                  options={answerOptions(shown.answerType)} onChange={(answerType) => patch({ answerType })} />
                 <label className="field">
                   Multiple choice options <small>comma-separated</small>
-                  <input value={shown.options} onChange={(e) => onChange({ options: e.target.value })} />
+                  <input value={shown.options} onChange={(e) => patch({ options: e.target.value })} />
                 </label>
               </div>
               <div className="form__actions modal__footer">
-                <button className="btn btn--danger" onClick={onDelete}><IconTrash size={18} /> Delete</button>
-                <Dialog.Close className="btn btn--primary">Done</Dialog.Close>
+                {!isNew && (
+                  <button className="btn btn--danger" onClick={onDelete}><IconTrash size={18} /> Delete</button>
+                )}
+                <span className="modal__spacer" />
+                <button className="btn" disabled={!changed} onClick={reset}>
+                  <IconRestore size={18} /> Reset
+                </button>
+                <button className="btn btn--primary" onClick={() => onSave(shown)}>Done</button>
               </div>
             </>
           )}

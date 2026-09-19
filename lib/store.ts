@@ -12,7 +12,9 @@ export type Template = {
 // The full document, including the section → subsection → comment tree.
 export type TemplateDoc = Template & { tree: Section[] };
 
-const docs: TemplateDoc[] = [
+// Kept on globalThis so dev hot-reloads (which re-run this module) don't wipe the data.
+const g = globalThis as unknown as { __templateDocs?: TemplateDoc[] };
+const docs: TemplateDoc[] = (g.__templateDocs ??= [
   {
     id: "1",
     name: "Welcome email",
@@ -20,7 +22,7 @@ const docs: TemplateDoc[] = [
     createdAt: new Date().toISOString(),
     tree: [],
   },
-];
+]);
 
 // The list view never needs the (large) tree.
 const summary = ({ tree: _tree, ...t }: TemplateDoc): Template => t;

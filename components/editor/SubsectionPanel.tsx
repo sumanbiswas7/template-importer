@@ -7,7 +7,7 @@ import CommentDialog from "./CommentDialog";
 import SortableList from "./Sortable";
 import EditableTitle from "./EditableTitle";
 import {
-  COMMENT_TYPES, newComment, plainText, reorderGroup, uid,
+  COMMENT_TYPES, newComment, reorderGroup, uid,
   type Comment, type CommentType, type Subsection,
 } from "@/lib/template";
 
@@ -20,31 +20,26 @@ export default function SubsectionPanel({
   onOpenSection: () => void;
   onChange: (next: Subsection) => void;
 }) {
-  const [isNew, setIsNew] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(focusId ?? null);
   const { comments } = subsection;
+  // The comment being edited, as it was when the dialog opened (edits live in the dialog's draft).
+  const [editing, setEditing] = useState<{ comment: Comment; isNew: boolean } | null>(() => {
+    const c = focusId ? comments.find((x) => x.id === focusId) : undefined;
+    return c ? { comment: c, isNew: false } : null;
+  });
 
   useEffect(() => {
     if (focusId) document.getElementById(`comment-${focusId}`)?.scrollIntoView({ block: "center" });
   }, [focusId]);
   const setComments = (next: Comment[]) => onChange({ ...subsection, comments: next });
 
-  const patch = (id: string, p: Partial<Comment>) =>
-    setComments(comments.map((c) => (c.id === id ? { ...c, ...p } : c)));
+  // A new comment only joins the list when the dialog's "Done" is clicked.
+  const add = (type: CommentType) => setEditing({ comment: newComment(type), isNew: true });
 
-  function add(type: CommentType) {
-    const c = newComment(type);
-    setComments([...comments, c]);
-    setEditingId(c.id);
-    setIsNew(true);
-  }
-
-  function closeDialog() {
-    // A brand-new comment that was never filled in is dropped rather than left as a blank card.
-    const c = comments.find((x) => x.id === editingId);
-    if (isNew && c && !c.name.trim() && !plainText(c.text)) setComments(comments.filter((x) => x !== c));
-    setEditingId(null);
-    setIsNew(false);
+  function save(draft: Comment) {
+    setComments(editing?.isNew
+      ? [...comments, draft]
+      : comments.map((c) => (c.id === draft.id ? draft : c)));
+    setEditing(null);
   }
 
   function duplicate(c: Comment) {
@@ -56,7 +51,7 @@ export default function SubsectionPanel({
   function remove(c: Comment) {
     if (!window.confirm(`Delete “${c.name || "Untitled comment"}”?`)) return;
     setComments(comments.filter((x) => x.id !== c.id));
-    if (editingId === c.id) closeDialog();
+    if (editing?.comment.id === c.id) setEditing(null);
   }
 
   return (
@@ -95,7 +90,7 @@ export default function SubsectionPanel({
                   <CommentCard
                     comment={c}
                     handle={handle}
-                    onEdit={() => setEditingId(c.id)}
+                    onEdit={() => setEditing({ comment: c, isNew: false })}
                     onDuplicate={() => duplicate(c)}
                     onDelete={() => remove(c)}
                   />
@@ -106,17 +101,13 @@ export default function SubsectionPanel({
         );
       })}
 
-      {(() => {
-        const editing = comments.find((c) => c.id === editingId) ?? null;
-        return (
-          <CommentDialog
-            comment={editing}
-            onChange={(p) => editing && patch(editing.id, p)}
-            onDelete={() => editing && remove(editing)}
-            onClose={closeDialog}
-          />
-        );
-      })()}
+      <CommentDialog
+        comment={editing?.comment ?? null}
+        isNew={editing?.isNew ?? false}
+        onSave={save}
+        onDelete={() => editing && remove(editing.comment)}
+        onClose={() => setEditing(null)}
+      />
     </>
   );
 }
