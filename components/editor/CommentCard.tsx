@@ -30,7 +30,7 @@ export default function CommentCard({
 }) {
   const TypeIcon = TYPE_ICON[comment.type];
   return (
-    <div className={`comment comment--${comment.type}`}>
+    <div id={`comment-${comment.id}`} className={`comment comment--${comment.type}`}>
       <div className="comment__head">
         {handle}
         <TypeIcon size={20} className="comment__icon" />

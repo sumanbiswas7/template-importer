@@ -1,7 +1,7 @@
 "use client";
 
 import { IconChevronRight, IconPlus } from "@tabler/icons-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CommentCard from "./CommentCard";
 import SortableList from "./Sortable";
 import EditableTitle from "./EditableTitle";
@@ -11,15 +11,20 @@ import {
 } from "@/lib/template";
 
 export default function SubsectionPanel({
-  subsection, sectionName, onOpenSection, onChange,
+  subsection, sectionName, focusId, onOpenSection, onChange,
 }: {
   subsection: Subsection;
   sectionName: string;
+  focusId?: string;
   onOpenSection: () => void;
   onChange: (next: Subsection) => void;
 }) {
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(focusId ?? null);
   const { comments } = subsection;
+
+  useEffect(() => {
+    if (focusId) document.getElementById(`comment-${focusId}`)?.scrollIntoView({ block: "center" });
+  }, [focusId]);
   const setComments = (next: Comment[]) => onChange({ ...subsection, comments: next });
 
   const patch = (id: string, p: Partial<Comment>) =>

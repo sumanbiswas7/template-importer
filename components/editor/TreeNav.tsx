@@ -2,16 +2,18 @@
 
 import * as Menu from "@radix-ui/react-dropdown-menu";
 import {
-  IconChevronDown, IconChevronRight, IconDotsVertical, IconEdit, IconHome, IconLayersSubtract,
+  IconChevronDown, IconChevronRight, IconChevronsDown, IconChevronsUp, IconDotsVertical, IconEdit, IconHome, IconLayersSubtract,
   IconPlus, IconTrash,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import SortableList from "./Sortable";
+import Tip from "./Tip";
 import {
   mapSection, newSection, newSubsection, type Section,
 } from "@/lib/template";
 
-export type Selection = { sectionId: string; subsectionId?: string } | null;
+// commentId asks the subsection panel to scroll to and open that comment.
+export type Selection = { sectionId: string; subsectionId?: string; commentId?: string } | null;
 
 export default function TreeNav({
   tree, selection, onSelect, onChange,
@@ -29,6 +31,8 @@ export default function TreeNav({
   useEffect(() => {
     if (selectedSection) setExpanded((e) => (e.has(selectedSection) ? e : new Set(e).add(selectedSection)));
   }, [selectedSection]);
+
+  const anyOpen = tree.some((s) => expanded.has(s.id));
 
   const toggle = (id: string) =>
     setExpanded((e) => {
@@ -112,9 +116,22 @@ export default function TreeNav({
 
   return (
     <nav className="tree" aria-label="Template structure">
-      <button className={`tree__row tree__overview ${selection === null ? "is-selected" : ""}`} onClick={() => onSelect(null)}>
-        <IconHome size={20} /> Overview
-      </button>
+      <div className="tree__top">
+        <button className={`tree__row tree__overview ${selection === null ? "is-selected" : ""}`} onClick={() => onSelect(null)}>
+          <IconHome size={20} /> Overview
+        </button>
+        {tree.length > 0 && (
+          <Tip label={anyOpen ? "Collapse all" : "Expand all"}>
+            <button
+              className="icon-btn"
+              aria-label={anyOpen ? "Collapse all sections" : "Expand all sections"}
+              onClick={() => setExpanded(anyOpen ? new Set() : new Set(tree.map((s) => s.id)))}
+            >
+              {anyOpen ? <IconChevronsUp size={18} /> : <IconChevronsDown size={18} />}
+            </button>
+          </Tip>
+        )}
+      </div>
 
       <SortableList
         items={tree}

@@ -88,7 +88,8 @@ $limit: #dfd365;
     &.is-active { background: $black; color: #fff; .tree__dot { background: #fff; } .tree__menu { color: #fff; } }
     &:hover .grip, &:focus-within .grip { opacity: 1; }
   }
-  &__overview { padding-left: 12px; gap: 12px; margin-bottom: 4px; }
+  &__top { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; .icon-btn { flex: none; } }
+  &__overview { padding-left: 12px; gap: 12px; }
   &__row--section { font-weight: 550; margin-top: 2px; }
   &__children { margin-left: 22px; }
   &__icon { flex: none; }
@@ -241,4 +242,27 @@ $limit: #dfd365;
     color: $text; font: inherit; font-size: 30px; font-weight: 700; letter-spacing: -0.02em;
     &:focus { outline: none; border-color: $black; }
   }
+}
+
+.stats { margin-bottom: 24px; }
+.jump {
+  list-style: none; margin: 0; padding: 0;
+  li + li { border-top: 1px solid $gray-100; }
+  button {
+    display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 8px;
+    border: 0; border-radius: 8px; background: none; font: inherit; text-align: left; cursor: pointer;
+    &:hover { background: $gray-50; }
+  }
+  &__icon { flex: none; color: var(--accent); }
+  &__main {
+    display: grid; flex: 1; min-width: 0;
+    strong { font-weight: 600; }
+    span { color: $muted; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    em { color: $muted; font-weight: 400; }
+  }
+  &__where {
+    display: inline-flex; align-items: center; gap: 4px; flex: none; max-width: 40%; color: $muted;
+    font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  &__more { margin-top: 12px; }
 }

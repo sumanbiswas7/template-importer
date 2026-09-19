@@ -5,9 +5,10 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import EditableTitle from "./EditableTitle";
+import OverviewPanel from "./OverviewPanel";
 import SubsectionPanel from "./SubsectionPanel";
 import TreeNav, { type Selection } from "./TreeNav";
-import { countComments, mapSection, mapSubsection, type Section } from "@/lib/template";
+import { mapSection, mapSubsection, type Section } from "@/lib/template";
 import "@/styles/editor.scss";
 
 type Status = "saved" | "saving" | "error";
@@ -96,7 +97,6 @@ export default function Editor({ id }: { id: string }) {
 
   const section = tree.find((s) => s.id === selection?.sectionId);
   const subsection = section?.subsections.find((s) => s.id === selection?.subsectionId);
-  const totals = countComments(tree);
 
   return (
     <Tooltip.Provider delayDuration={250} skipDelayDuration={100}>
@@ -126,6 +126,7 @@ export default function Editor({ id }: { id: string }) {
               key={subsection.id}
               subsection={subsection}
               sectionName={section.name}
+              focusId={selection?.commentId}
               onOpenSection={() => setSelection({ sectionId: section.id })}
               onChange={(next) => edit({ tree: mapSubsection(tree, section.id, subsection.id, () => next) })}
             />
@@ -156,21 +157,10 @@ export default function Editor({ id }: { id: string }) {
             </section>
           </>
         ) : (
-          <>
-            <h1>Overview</h1>
-            <p className="crumb">Pick a subsection in the tree to add, edit, reorder or delete its comments.</p>
-            <div className="stats">
-              {[
-                ["Sections", totals.sections],
-                ["Subsections", totals.subsections],
-                ["Defects", totals.counts.defect],
-                ["Information", totals.counts.info],
-                ["Limitations", totals.counts.limit],
-              ].map(([label, n]) => (
-                <div key={label} className="stat"><strong>{n}</strong><span>{label}</span></div>
-              ))}
-            </div>
-          </>
+          <OverviewPanel
+            tree={tree}
+            onOpen={(sectionId, subsectionId, commentId) => setSelection({ sectionId, subsectionId, commentId })}
+          />
         )}
       </main>
     </div>
