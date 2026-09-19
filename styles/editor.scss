@@ -1,0 +1,244 @@
+@use "vars" as *;
+
+$defect: #d58760;
+$info: #5288c6;
+$limit: #dfd365;
+
+.editor-msg { display: grid; gap: 16px; place-content: center; justify-items: center; min-height: 100vh; text-align: center; }
+
+.editor {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  height: 100vh;
+  background: $canvas;
+
+  &__side {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: $bg;
+    border-right: $border;
+  }
+  &__side-head { display: grid; gap: 8px; padding: 20px 20px 14px; border-bottom: $border; }
+  &__name {
+    width: 100%;
+    padding: 4px 0;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    background: transparent;
+    color: $text;
+    font: inherit;
+    font-size: 20px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    &:hover { border-bottom-color: $gray-200; }
+    &:focus { outline: none; border-bottom-color: $black; }
+  }
+  &__main {
+    min-width: 0;
+    padding: 36px 44px 80px;
+    overflow-y: auto;
+    h1 { margin: 0; font-size: 30px; font-weight: 700; }
+  }
+  @media (max-width: 800px) {
+    grid-template-columns: 1fr;
+    height: auto;
+    &__side { max-height: 50vh; }
+    &__main { padding: 24px 16px 60px; }
+  }
+}
+
+.back { display: inline-flex; align-items: center; gap: 6px; color: $black; text-decoration: none; font-weight: 500; &:hover { text-decoration: underline; } }
+.crumb {
+  display: flex; align-items: center; gap: 6px; margin: 2px 0 24px; color: $muted;
+  &__link { padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; &:hover { color: $text; text-decoration: underline; } }
+}
+
+.save {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: $muted;
+  &--error { color: $danger; }
+}
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+// --- Tree -------------------------------------------------------------------
+.tree {
+  flex: 1;
+  min-height: 0;
+  padding: 10px 12px 40px;
+  overflow-y: auto;
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 38px;
+    padding: 0 6px 0 2px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: $text;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover { background: $gray-50; }
+    &.is-selected { background: $gray-100; color: $black; font-weight: 600; }
+    &.is-active { background: $black; color: #fff; .tree__dot { background: #fff; } .tree__menu { color: #fff; } }
+    &:hover .grip, &:focus-within .grip { opacity: 1; }
+  }
+  &__overview { padding-left: 12px; gap: 12px; margin-bottom: 4px; }
+  &__row--section { font-weight: 550; margin-top: 2px; }
+  &__children { margin-left: 22px; }
+  &__icon { flex: none; }
+  &__dot { flex: none; width: 8px; height: 8px; margin: 0 6px 0 4px; border-radius: 50%; background: $gray-300; }
+  &__chevron, &__menu {
+    display: grid; place-items: center; flex: none; width: 24px; height: 24px; padding: 0;
+    border: 0; border-radius: 6px; background: none; color: inherit; cursor: pointer;
+    &:hover { background: rgb(0 0 0 / 0.07); }
+  }
+  &__menu { color: $muted; opacity: 0; }
+  &__row:hover &__menu, &__menu[data-state="open"], &__menu:focus-visible { opacity: 1; }
+  &__label {
+    flex: 1; min-width: 0; padding: 8px 0; border: 0; background: none; color: inherit;
+    font: inherit; font-weight: inherit; text-align: left; cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  &__rename {
+    flex: 1; min-width: 0; margin: 3px 0; padding: 4px 8px; border: 1px solid $black; border-radius: 6px;
+    color: $text; font: inherit; outline: none;
+  }
+  &__add {
+    display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 8px 8px 34px;
+    border: 0; background: none; color: $black; font: inherit; cursor: pointer;
+    &:hover { text-decoration: underline; }
+    &--root { margin-top: 10px; padding-left: 12px; }
+  }
+}
+
+.grip {
+  display: grid; place-items: center; flex: none; width: 18px; height: 28px; padding: 0;
+  border: 0; border-radius: 4px; background: none; color: $gray-300; opacity: 0;
+  cursor: grab; touch-action: none;
+  &:active { cursor: grabbing; }
+  &:focus-visible { opacity: 1; outline: 2px solid $black; }
+}
+.sortable { position: relative; &.is-dragging { z-index: 5; opacity: 0.9; box-shadow: 0 8px 24px rgb(0 0 0 / 0.15); border-radius: 12px; background: $bg; } }
+
+.menu {
+  z-index: 50; min-width: 150px; padding: 6px; background: $bg; border: $border; border-radius: 10px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.15);
+  &__item {
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; outline: none; cursor: pointer;
+    &[data-highlighted] { background: $gray-50; }
+    &--danger { color: $danger; &[data-highlighted] { background: #fdeceb; } }
+  }
+}
+
+// --- Right panel ------------------------------------------------------------
+.card {
+  margin-bottom: 24px; padding: 28px; background: $bg; border: $border; border-radius: $radius;
+  h2 { margin: 0 0 18px; font-size: 22px; }
+}
+
+.field {
+  display: grid; gap: 6px; font-weight: 550;
+  small { color: $muted; font-weight: 400; }
+  input, textarea, select {
+    width: 100%; padding: 10px 12px; border: $border; border-radius: 10px; background: $bg;
+    color: $text; font: inherit; font-weight: 400;
+    &:focus { outline: none; border-color: $black; }
+  }
+  textarea { resize: vertical; line-height: 1.5; }
+}
+.field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+
+.pill {
+  display: inline-flex; align-items: center; padding: 4px 12px; border: $border; border-radius: 999px;
+  background: $bg; font-size: 13px; font-weight: 550; white-space: nowrap;
+  &--group { border: 0; font-size: 15px; padding: 6px 16px; }
+  &--cat-1 { background: #e8f4ea; color: #2c7a3f; border-color: transparent; }
+  &--cat0 { background: #fdf3e2; color: #a86a12; border-color: transparent; }
+  &--cat1 { background: #fdeceb; color: $danger; border-color: transparent; }
+}
+
+.group {
+  --accent: #{$defect};
+  margin-bottom: 24px; padding: 20px 20px 20px 24px; background: $bg; border: $border;
+  border-radius: $radius;
+
+  &--info { --accent: #{$info}; }
+  &--limit { --accent: #{$limit}; }
+  // Label colors are derived from the group accent so they stay in sync with the variables above.
+  .pill--group {
+    background: color-mix(in srgb, var(--accent) 20%, white);
+    color: color-mix(in srgb, var(--accent) 50%, black);
+  }
+
+  &__head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  &__add { margin-left: auto; }
+  &__list { display: grid; gap: 12px; }
+  &__empty { padding: 8px 0; }
+}
+
+.comment {
+  background: color-mix(in srgb, var(--accent) 6%, white);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, white);
+  border-radius: 12px;
+
+  &__head { display: flex; align-items: center; gap: 10px; padding: 12px 14px 12px 8px; }
+  &__icon { flex: none; color: var(--accent); }
+  &__title {
+    display: grid; flex: 1; min-width: 0; gap: 2px; padding: 0; border: 0; background: none;
+    color: inherit; font: inherit; text-align: left; cursor: pointer;
+    strong { font-weight: 600; }
+    span { color: $muted; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    em { color: $muted; font-weight: 400; }
+  }
+  &__actions { display: flex; gap: 4px; flex: none; }
+  &__form { display: grid; gap: 14px; padding: 4px 18px 18px 40px; }
+  .grip { opacity: 0.6; }
+  &:hover .grip { opacity: 1; }
+}
+
+.icon-btn {
+  display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px;
+  background: none; color: $muted; cursor: pointer;
+  &:hover { background: rgb(0 0 0 / 0.06); color: $text; }
+  &--danger:hover { background: #fdeceb; color: $danger; }
+}
+
+.card--list { padding-bottom: 14px; }
+.summary {
+  list-style: none; margin: 0; padding: 0;
+  li:last-child button { border-bottom: 0; }
+  button {
+    display: flex; justify-content: space-between; gap: 16px; width: 100%; padding: 12px 8px;
+    border: 0; border-bottom: 1px solid $gray-100; background: none; font: inherit; text-align: left; cursor: pointer;
+    &:hover { background: $gray-50; }
+  }
+}
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+.stat {
+  display: grid; gap: 2px; padding: 20px; background: $bg; border: $border; border-radius: $radius;
+  strong { font-size: 32px; letter-spacing: -0.02em; }
+  span { color: $muted; }
+}
+
+.tip {
+  z-index: 60; padding: 5px 10px; border-radius: 6px; background: $black; color: #fff;
+  font-size: 13px; font-weight: 500; user-select: none;
+  &__arrow { fill: $black; }
+}
+
+.title {
+  display: flex; align-items: center; gap: 8px; min-height: 46px;
+  h1 { min-width: 0; overflow-wrap: anywhere; }
+  &__input {
+    flex: 1; min-width: 0; padding: 4px 12px; border: $border; border-radius: 10px; background: $bg;
+    color: $text; font: inherit; font-size: 30px; font-weight: 700; letter-spacing: -0.02em;
+    &:focus { outline: none; border-color: $black; }
+  }
+}

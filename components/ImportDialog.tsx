@@ -1,9 +1,11 @@
 "use client";
 
-import * as Dialog from "@radix-ui/react-dialog";
 import { IconUpload } from "@tabler/icons-react";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import { parseTemplateFile } from "@/lib/parseTemplate";
 
+// Not a dialog any more: clicking opens the file picker, then imports and opens the editor.
 export default function ImportDialog({
   onImported,
   className = "btn btn--primary",
@@ -13,66 +15,43 @@ export default function ImportDialog({
   className?: string;
   children?: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
-  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
-  async function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const data = new FormData(form);
+  async function onFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file
+    if (!file) return;
     setBusy(true);
-    setError("");
-    const res = await fetch("/api/templates", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: data.get("name"), content: data.get("content") }),
-    });
-    setBusy(false);
-    if (!res.ok) {
-      setError((await res.json()).error ?? "Something went wrong.");
-      return;
+    try {
+      const tree = await parseTemplateFile(file);
+      const res = await fetch("/api/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: file.name.replace(/\.[^.]+$/, "").trim() || file.name, tree }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Something went wrong.");
+      const created: { id: string } = await res.json();
+      onImported();
+      router.push(`/templates/${created.id}`);
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setBusy(false);
     }
-    form.reset();
-    setOpen(false);
-    onImported();
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger className={className}>
-        {children ?? (
+    <>
+      <input ref={input} type="file" accept=".xls,.xlsx,.csv" hidden onChange={onFile} />
+      <button type="button" className={className} disabled={busy} onClick={() => input.current?.click()}>
+        {busy ? "Importing…" : (children ?? (
           <>
             <IconUpload size={18} stroke={2} /> Import template
           </>
-        )}
-      </Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Overlay className="overlay" />
-        <Dialog.Content className="modal">
-          <Dialog.Title className="modal__title">Import template</Dialog.Title>
-          <Dialog.Description className="modal__desc">
-            Give it a name and paste the template content.
-          </Dialog.Description>
-          <form onSubmit={submit} className="form">
-            <label>
-              Name
-              <input name="name" required autoFocus />
-            </label>
-            <label>
-              Content
-              <textarea name="content" rows={6} required />
-            </label>
-            {error && <p className="form__error">{error}</p>}
-            <div className="form__actions">
-              <Dialog.Close className="btn" type="button">Cancel</Dialog.Close>
-              <button className="btn btn--primary" disabled={busy}>
-                {busy ? "Importing…" : "Import"}
-              </button>
-            </div>
-          </form>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+        ))}
+      </button>
+    </>
   );
 }

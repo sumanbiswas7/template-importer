@@ -4,6 +4,7 @@ import {
   IconCalendar, IconChevronDown, IconCopy, IconExternalLink, IconEdit, IconHome,
   IconSearch, IconSortDescending, IconTrash, IconUpload, IconUser,
 } from "@tabler/icons-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ImportDialog from "./ImportDialog";
 import TemplateDialog from "./TemplateDialog";
@@ -39,10 +40,12 @@ export default function Templates() {
   }
 
   async function duplicate(t: Template) {
+    // The list omits the tree, so fetch the full document to copy it.
+    const { tree } = await (await fetch(`/api/templates?id=${encodeURIComponent(t.id)}`)).json();
     await fetch("/api/templates", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: `${t.name} (copy)`, content: t.content }),
+      body: JSON.stringify({ name: `${t.name} (copy)`, content: t.content, tree }),
     });
     load();
   }
@@ -79,7 +82,7 @@ export default function Templates() {
           <ImportDialog onImported={load} className="import-big">
             <span className="import-big__icon"><IconUpload size={40} /></span>
             <span className="import-big__title">Import a template</span>
-            <span className="import-big__hint">Paste in your content to get started</span>
+            <span className="import-big__hint">Upload an .xls or .xlsx to get started</span>
           </ImportDialog>
         ) : (
           <section className="library">
@@ -129,9 +132,9 @@ export default function Templates() {
                         </time>
                       </div>
                       <div className="row__actions">
-                        <TemplateDialog template={t} mode="view" onSaved={load}>
+                        <Link className="btn" href={`/templates/${t.id}`}>
                           <IconExternalLink size={18} /> Open
-                        </TemplateDialog>
+                        </Link>
                         <TemplateDialog template={t} mode="edit" onSaved={load}>
                           <IconEdit size={18} /> Edit
                         </TemplateDialog>
