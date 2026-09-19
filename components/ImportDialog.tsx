@@ -1,9 +1,18 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { useState, type FormEvent } from "react";
+import { IconUpload } from "@tabler/icons-react";
+import { useState, type FormEvent, type ReactNode } from "react";
 
-export default function ImportDialog({ onImported }: { onImported: () => void }) {
+export default function ImportDialog({
+  onImported,
+  className = "btn btn--primary",
+  children,
+}: {
+  onImported: () => void;
+  className?: string;
+  children?: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -31,7 +40,13 @@ export default function ImportDialog({ onImported }: { onImported: () => void })
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger className="btn btn--primary">Import template</Dialog.Trigger>
+      <Dialog.Trigger className={className}>
+        {children ?? (
+          <>
+            <IconUpload size={18} stroke={2} /> Import template
+          </>
+        )}
+      </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="overlay" />
         <Dialog.Content className="modal">

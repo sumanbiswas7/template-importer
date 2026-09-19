@@ -35,3 +35,11 @@ export function removeTemplate(id: string): boolean {
   templates.splice(i, 1);
   return true;
 }
+
+export function updateTemplate(id: string, name: string, content: string): Template | null {
+  const t = templates.find((t) => t.id === id);
+  if (!t) return null;
+  t.name = name;
+  t.content = content;
+  return t;
+}
