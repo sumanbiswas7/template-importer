@@ -44,7 +44,7 @@ export async function listTemplates(db: SupabaseClient): Promise<Template[]> {
 
 type CommentRow = {
   id: string; name: string; text: string; type: Comment["type"]; category: Comment["category"];
-  options: string; answer_type: string; extra: Record<string, string>; position: number;
+  options: string; answer_type: string; extra: Record<string, string>; hidden: boolean; position: number;
 };
 
 export async function getTemplate(db: SupabaseClient, id: string): Promise<TemplateDoc | null> {
@@ -53,7 +53,7 @@ export async function getTemplate(db: SupabaseClient, id: string): Promise<Templ
     .from("templates")
     .select(
       "id, name, icons_resolved, created_at, " +
-      "sections(id, name, icon, position, subsections(id, name, position, comments(*)))",
+      "sections(id, name, icon, hidden, position, subsections(id, name, hidden, position, comments(*)))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -63,20 +63,23 @@ export async function getTemplate(db: SupabaseClient, id: string): Promise<Templ
   const t = data as unknown as {
     id: string; name: string; icons_resolved: boolean; created_at: string;
     sections: {
-      id: string; name: string; icon: string | null; position: number;
-      subsections: { id: string; name: string; position: number; comments: CommentRow[] }[];
+      id: string; name: string; icon: string | null; hidden: boolean; position: number;
+      subsections: { id: string; name: string; hidden: boolean; position: number; comments: CommentRow[] }[];
     }[];
   };
   const tree: Section[] = t.sections.sort(byPosition).map((s) => ({
     id: s.id,
     name: s.name,
     ...(s.icon && { icon: s.icon }),
+    ...(s.hidden && { hidden: true }),
     subsections: s.subsections.sort(byPosition).map((sub) => ({
       id: sub.id,
       name: sub.name,
+      ...(sub.hidden && { hidden: true }),
       comments: sub.comments.sort(byPosition).map((c) => ({
         id: c.id, name: c.name, text: c.text, type: c.type, category: c.category,
         options: c.options, answerType: c.answer_type, extra: c.extra,
+        ...(c.hidden && { hidden: true }),
       })),
     })),
   }));

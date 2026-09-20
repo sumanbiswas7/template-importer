@@ -27,6 +27,7 @@ create table if not exists public.sections (
   template_id  uuid not null references public.templates (id) on delete cascade,
   name         text not null,
   icon         text references public.icons (key),
+  hidden       boolean not null default false,
   position     int  not null
 );
 create index if not exists sections_template_idx on public.sections (template_id, position);
@@ -35,6 +36,7 @@ create table if not exists public.subsections (
   id          uuid primary key default gen_random_uuid(),
   section_id  uuid not null references public.sections (id) on delete cascade,
   name        text not null,
+  hidden      boolean not null default false,
   position    int  not null
 );
 create index if not exists subsections_section_idx on public.subsections (section_id, position);
@@ -49,9 +51,15 @@ create table if not exists public.comments (
   options        text not null default '',     -- comma-separated multiple-choice options
   answer_type    text not null default 'boolean',
   extra          jsonb not null default '{}', -- unmapped spreadsheet columns, for round-trip export
+  hidden         boolean not null default false,
   position       int  not null
 );
 create index if not exists comments_subsection_idx on public.comments (subsection_id, position);
+
+-- Added after the first version: "hidden" items are dimmed in the editor and left out of the PDF export.
+alter table public.sections    add column if not exists hidden boolean not null default false;
+alter table public.subsections add column if not exists hidden boolean not null default false;
+alter table public.comments    add column if not exists hidden boolean not null default false;
 
 -- The list page's rows, with counts (the app builds "3 sections · …" from these).
 create or replace view public.template_list with (security_invoker = true) as
@@ -122,11 +130,15 @@ begin
     select id into v_sid from public.sections
      where id = public.uuid_or_null(v_cid) and template_id = p_id;
     if v_sid is null then
-      insert into public.sections (template_id, name, icon, position)
-      values (p_id, coalesce(s->>'name', ''), v_icon, s_pos) returning id into v_sid;
+      insert into public.sections (template_id, name, icon, hidden, position)
+      values (p_id, coalesce(s->>'name', ''), v_icon, coalesce(s->'hidden' = 'true'::jsonb, false), s_pos)
+      returning id into v_sid;
       if v_cid is not null then v_map := v_map || jsonb_build_object(v_cid, v_sid); end if;
     else
-      update public.sections set name = coalesce(s->>'name', ''), icon = v_icon, position = s_pos where id = v_sid;
+      update public.sections
+         set name = coalesce(s->>'name', ''), icon = v_icon, hidden = coalesce(s->'hidden' = 'true'::jsonb, false),
+             position = s_pos
+       where id = v_sid;
     end if;
     v_sec_ids := v_sec_ids || v_sid;
 
@@ -137,11 +149,14 @@ begin
         join public.sections sc on sc.id = ss.section_id
        where ss.id = public.uuid_or_null(v_cid) and sc.template_id = p_id;
       if v_subid is null then
-        insert into public.subsections (section_id, name, position)
-        values (v_sid, coalesce(sub->>'name', ''), sub_pos) returning id into v_subid;
+        insert into public.subsections (section_id, name, hidden, position)
+        values (v_sid, coalesce(sub->>'name', ''), coalesce(sub->'hidden' = 'true'::jsonb, false), sub_pos)
+        returning id into v_subid;
         if v_cid is not null then v_map := v_map || jsonb_build_object(v_cid, v_subid); end if;
       else
-        update public.subsections set section_id = v_sid, name = coalesce(sub->>'name', ''), position = sub_pos
+        update public.subsections
+           set section_id = v_sid, name = coalesce(sub->>'name', ''),
+               hidden = coalesce(sub->'hidden' = 'true'::jsonb, false), position = sub_pos
          where id = v_subid;
       end if;
       v_sub_ids := v_sub_ids || v_subid;
@@ -155,11 +170,12 @@ begin
          where cm.id = public.uuid_or_null(v_cid) and sc.template_id = p_id;
         if v_comid is null then
           insert into public.comments
-            (subsection_id, name, text, type, category, options, answer_type, extra, position)
+            (subsection_id, name, text, type, category, options, answer_type, extra, hidden, position)
           values (
             v_subid, coalesce(c->>'name', ''), coalesce(c->>'text', ''), coalesce(c->>'type', 'info'),
             coalesce(c->>'category', ''), coalesce(c->>'options', ''), coalesce(c->>'answerType', 'boolean'),
-            case when jsonb_typeof(c->'extra') = 'object' then c->'extra' else '{}'::jsonb end, c_pos
+            case when jsonb_typeof(c->'extra') = 'object' then c->'extra' else '{}'::jsonb end,
+            coalesce(c->'hidden' = 'true'::jsonb, false), c_pos
           ) returning id into v_comid;
           if v_cid is not null then v_map := v_map || jsonb_build_object(v_cid, v_comid); end if;
         else
@@ -168,7 +184,7 @@ begin
             type = coalesce(c->>'type', 'info'), category = coalesce(c->>'category', ''),
             options = coalesce(c->>'options', ''), answer_type = coalesce(c->>'answerType', 'boolean'),
             extra = case when jsonb_typeof(c->'extra') = 'object' then c->'extra' else '{}'::jsonb end,
-            position = c_pos
+            hidden = coalesce(c->'hidden' = 'true'::jsonb, false), position = c_pos
           where id = v_comid;
         end if;
         v_com_ids := v_com_ids || v_comid;

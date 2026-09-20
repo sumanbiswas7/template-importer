@@ -26,13 +26,13 @@ export default function PrintView({ name, tree }: { name: string; tree: Section[
   return (
     <article className="print-doc" aria-hidden>
       <h1>{name}</h1>
-      {tree.map((section) => (
+      {tree.filter((s) => !s.hidden).map((section) => (
         <section key={section.id}>
           <h2>{section.name}</h2>
-          {section.subsections.map((sub) => (
+          {section.subsections.filter((sub) => !sub.hidden).map((sub) => (
             <div key={sub.id} className="print-doc__sub">
               <h3>{sub.name}</h3>
-              {sub.comments.map((c) => (
+              {sub.comments.filter((c) => !c.hidden).map((c) => (
                 <div key={c.id} className={`print-doc__comment print-doc__comment--${c.type}`}>
                   <p className="print-doc__meta">
                     {typeLabel[c.type]}

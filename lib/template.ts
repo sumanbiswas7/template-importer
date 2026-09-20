@@ -12,12 +12,13 @@ export type Comment = {
   category: Category;
   options: string; // comma-separated multiple choice options
   answerType: string;
+  hidden?: boolean; // left out of the PDF export; dimmed in the editor
   // Every other spreadsheet column, kept so a future export can round-trip.
   extra: Record<string, string>;
 };
 
-export type Subsection = { id: string; name: string; comments: Comment[] };
-export type Section = { id: string; name: string; icon?: string; subsections: Subsection[] };
+export type Subsection = { id: string; name: string; hidden?: boolean; comments: Comment[] };
+export type Section = { id: string; name: string; icon?: string; hidden?: boolean; subsections: Subsection[] };
 
 export const COMMENT_TYPES: { type: CommentType; label: string; hint: string }[] = [
   { type: "defect", label: "Defects / Deficiencies", hint: "Problems and shortfalls to be aware of" },

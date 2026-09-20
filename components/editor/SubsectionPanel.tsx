@@ -92,6 +92,7 @@ export default function SubsectionPanel({
                     handle={handle}
                     onEdit={() => setEditing({ comment: c, isNew: false })}
                     onDuplicate={() => duplicate(c)}
+                    onToggleHidden={() => setComments(comments.map((x) => (x.id === c.id ? { ...x, hidden: !x.hidden } : x)))}
                     onDelete={() => remove(c)}
                   />
                 )}

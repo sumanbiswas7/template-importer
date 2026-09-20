@@ -2,7 +2,7 @@
 
 import * as Menu from "@radix-ui/react-dropdown-menu";
 import {
-  IconChevronDown, IconChevronRight, IconChevronsDown, IconChevronsUp, IconDotsVertical, IconEdit, IconHome,
+  IconChevronDown, IconChevronRight, IconChevronsDown, IconChevronsUp, IconDotsVertical, IconEdit, IconEye, IconEyeOff, IconHome,
   IconPlus, IconTrash,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
@@ -97,6 +97,19 @@ export default function TreeNav({
       </button>
     );
 
+  const eye = (hidden: boolean | undefined, name: string, onToggle: () => void) => (
+    <Tip label={hidden ? "Show in export" : "Hide from export"}>
+      <button
+        className={`tree__eye${hidden ? " is-on" : ""}`}
+        aria-label={`${hidden ? "Show" : "Hide"} ${name}`}
+        aria-pressed={!!hidden}
+        onClick={onToggle}
+      >
+        {hidden ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+      </button>
+    </Tip>
+  );
+
   const menu = (id: string, onDelete: () => void) => (
     <Menu.Root>
       <Menu.Trigger className="tree__menu" aria-label="More actions">
@@ -142,13 +155,15 @@ export default function TreeNav({
           const sectionSelected = selection?.sectionId === section.id && !selection.subsectionId;
           return (
             <div className="tree__section">
-              <div className={`tree__row tree__row--section ${sectionSelected ? "is-selected" : ""}`}>
+              <div className={`tree__row tree__row--section ${sectionSelected ? "is-selected" : ""}${section.hidden ? " is-hidden" : ""}`}>
                 {handle}
                 <button className="tree__chevron" aria-label={open ? "Collapse" : "Expand"} onClick={() => toggle(section.id)}>
                   {open ? <IconChevronDown size={18} /> : <IconChevronRight size={18} />}
                 </button>
                 <SectionIcon icon={section.icon} className="tree__icon" />
                 {label(section.id, section.name, () => onSelect({ sectionId: section.id }))}
+                {eye(section.hidden, section.name, () =>
+                  onChange(mapSection(tree, section.id, (s) => ({ ...s, hidden: !s.hidden }))))}
                 {menu(section.id, () => removeSection(section))}
               </div>
 
@@ -158,10 +173,14 @@ export default function TreeNav({
                     items={section.subsections}
                     onReorder={(next) => onChange(mapSection(tree, section.id, (s) => ({ ...s, subsections: next })))}
                     render={(sub, subHandle) => (
-                      <div className={`tree__row ${selection?.subsectionId === sub.id ? "is-active" : ""}`}>
+                      <div className={`tree__row ${selection?.subsectionId === sub.id ? "is-active" : ""}${sub.hidden || section.hidden ? " is-hidden" : ""}`}>
                         {subHandle}
                         <span className="tree__dot" />
                         {label(sub.id, sub.name, () => onSelect({ sectionId: section.id, subsectionId: sub.id }))}
+                        {eye(sub.hidden, sub.name, () =>
+                          onChange(mapSection(tree, section.id, (s) => ({
+                            ...s, subsections: s.subsections.map((x) => (x.id === sub.id ? { ...x, hidden: !x.hidden } : x)),
+                          }))))}
                         {menu(sub.id, () => removeSubsection(section.id, sub.id, sub.name))}
                       </div>
                     )}

@@ -95,7 +95,7 @@ $limit: #dfd365;
 
     &:hover { background: $gray-50; }
     &.is-selected { background: $gray-100; color: $black; font-weight: 600; }
-    &.is-active { background: $black; color: #fff; .tree__dot { background: #fff; } .tree__menu { color: #fff; } }
+    &.is-active { background: $black; color: #fff; .tree__dot { background: #fff; } .tree__menu, .tree__eye { color: #fff; } }
     &:hover .grip, &:focus-within .grip { opacity: 1; }
   }
   &__top { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; .icon-btn { flex: none; } }
@@ -104,13 +104,16 @@ $limit: #dfd365;
   &__children { margin-left: 22px; }
   &__icon { flex: none; }
   &__dot { flex: none; width: 8px; height: 8px; margin: 0 6px 0 4px; border-radius: 50%; background: $gray-300; }
-  &__chevron, &__menu {
+  &__chevron, &__menu, &__eye {
     display: grid; place-items: center; flex: none; width: 24px; height: 24px; padding: 0;
     border: 0; border-radius: 6px; background: none; color: inherit; cursor: pointer;
     &:hover { background: rgb(0 0 0 / 0.07); }
   }
-  &__menu { color: $muted; opacity: 0; }
-  &__row:hover &__menu, &__menu[data-state="open"], &__menu:focus-visible { opacity: 1; }
+  &__menu, &__eye { color: $muted; opacity: 0; }
+  &__row:hover &__menu, &__menu[data-state="open"], &__menu:focus-visible,
+  &__row:hover &__eye, &__eye:focus-visible, &__eye.is-on { opacity: 1; }
+  // Hidden items (or anything inside a hidden section) are dimmed but stay reachable.
+  &__row.is-hidden &__icon, &__row.is-hidden &__label, &__row.is-hidden &__dot { opacity: 0.45; }
   &__label {
     flex: 1; min-width: 0; padding: 8px 0; border: 0; background: none; color: inherit;
     font: inherit; font-weight: inherit; text-align: left; cursor: pointer;
@@ -211,6 +214,7 @@ $limit: #dfd365;
     span { color: $muted; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     em { color: $muted; font-weight: 400; }
   }
+  &.is-hidden &__icon, &.is-hidden &__title { opacity: 0.5; }
   &__actions { display: flex; gap: 4px; flex: none; }
   &__form { display: grid; gap: 14px; padding: 4px 18px 18px 40px; }
   .grip { opacity: 0.6; }

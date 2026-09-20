@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  IconAlertTriangle, IconCopy, IconEdit, IconInfoCircle, IconLock, IconTrash,
+  IconAlertTriangle, IconCopy, IconEdit, IconEye, IconEyeOff, IconInfoCircle, IconLock, IconTrash,
   type Icon,
 } from "@tabler/icons-react";
 import type { ReactNode } from "react";
@@ -15,17 +15,18 @@ export const TYPE_ICON: Record<CommentType, Icon> = {
 };
 
 export default function CommentCard({
-  comment, handle, onEdit, onDuplicate, onDelete,
+  comment, handle, onEdit, onDuplicate, onToggleHidden, onDelete,
 }: {
   comment: Comment;
   handle: ReactNode;
   onEdit: () => void;
   onDuplicate: () => void;
+  onToggleHidden: () => void;
   onDelete: () => void;
 }) {
   const TypeIcon = TYPE_ICON[comment.type];
   return (
-    <div id={`comment-${comment.id}`} className={`comment comment--${comment.type}`}>
+    <div id={`comment-${comment.id}`} className={`comment comment--${comment.type}${comment.hidden ? " is-hidden" : ""}`}>
       <div className="comment__head">
         {handle}
         <TypeIcon size={20} className="comment__icon" />
@@ -37,6 +38,16 @@ export default function CommentCard({
           <span className={`pill pill--cat${comment.category}`}>{CATEGORY_LABELS[comment.category]}</span>
         )}
         <div className="comment__actions">
+          <Tip label={comment.hidden ? "Show in export" : "Hide from export"}>
+            <button
+              className="icon-btn"
+              aria-label={comment.hidden ? "Show comment" : "Hide comment"}
+              aria-pressed={!!comment.hidden}
+              onClick={onToggleHidden}
+            >
+              {comment.hidden ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+            </button>
+          </Tip>
           <Tip label="Edit">
             <button className="icon-btn" aria-label="Edit comment" onClick={onEdit}>
               <IconEdit size={18} />
