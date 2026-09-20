@@ -54,13 +54,18 @@ $limit: #dfd365;
   &__link { padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; &:hover { color: $text; text-decoration: underline; } }
 }
 
-.savebar {
-  // Zero-height sticky row: the controls are nudged down 23px so they centre on the 46px title line.
-  position: sticky; top: 0; z-index: 20; height: 0; display: flex; justify-content: flex-end; align-items: center; gap: 12px;
-  > * { position: relative; top: 23px; }
-  .btn { padding: 6px 12px; font-size: 14px; gap: 6px; box-shadow: 0 2px 8px rgb(0 0 0 / 0.12); }
-  &__ok, &__error { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 550; }
-  &__ok { padding: 6px 12px; border-radius: 8px; background: $bg; border: $border; color: #2c7a3f; }
+// Floating actions, bottom right.
+.fab {
+  position: fixed; right: 20px; bottom: 20px; z-index: 30; display: flex; align-items: center; gap: 8px;
+  padding: 8px; border: $border; border-radius: 12px; background: $bg; box-shadow: 0 6px 24px rgb(0 0 0 / 0.14);
+  .btn {
+    padding: 6px 12px; font-size: 14px; gap: 6px; border: 0; background: none; color: $text; box-shadow: none;
+    &:hover:not(:disabled) { background: $gray-100; }
+    &:disabled { opacity: 0.45; cursor: not-allowed; }
+  }
+  &__divider { align-self: stretch; width: 1px; margin: 4px 0; background: $gray-200; }
+  &__ok, &__error { display: inline-flex; align-items: center; gap: 6px; padding: 0 6px; font-size: 14px; font-weight: 550; }
+  &__ok { color: #2c7a3f; }
   &__error { color: $danger; }
 }
 .spin { animation: spin 1s linear infinite; }
@@ -368,9 +373,6 @@ $limit: #dfd365;
   &__top { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 46px; }
   &__empty { margin: 0 0 24px; }
 }
-// Leave room for the floating Save button that shares this row.
-.has-savebar .osearch { margin-right: 130px; }
-
 .osearch {
   position: relative; display: block; flex: none; width: 220px; transition: margin-right .15s;
   input {
@@ -385,5 +387,26 @@ $limit: #dfd365;
     position: absolute; top: 50%; right: 6px; transform: translateY(-50%); display: grid; place-items: center;
     width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px; background: none; color: $muted; cursor: pointer;
     &:hover { background: rgb(0 0 0 / 0.06); color: $text; }
+  }
+}
+
+// --- Print / PDF ------------------------------------------------------------
+.print-doc { display: none; }
+@media print {
+  .editor, .fab { display: none !important; }
+  .print-doc {
+    display: block; color: #000; font: 12pt/1.45 system-ui, sans-serif;
+    h1 { margin: 0 0 16pt; font-size: 22pt; }
+    h2 { margin: 22pt 0 8pt; padding-bottom: 4pt; border-bottom: 1px solid #999; font-size: 16pt; break-after: avoid; }
+    h3 { margin: 14pt 0 6pt; font-size: 13pt; break-after: avoid; }
+    p, ul, ol { margin: 0 0 6pt; }
+    &__comment {
+      margin: 0 0 8pt; padding: 6pt 10pt; border-left: 3px solid #999; break-inside: avoid;
+      &--defect { border-color: $defect; }
+      &--info { border-color: $info; }
+      &--limit { border-color: $limit; }
+    }
+    &__meta { color: #555; font-size: 9.5pt; text-transform: uppercase; letter-spacing: 0.03em; }
+    &__name { font-weight: 650; }
   }
 }

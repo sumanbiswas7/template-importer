@@ -1,11 +1,12 @@
 "use client";
 
-import { IconAlertCircle, IconArrowLeft, IconCheck, IconDeviceFloppy, IconLoader2 } from "@tabler/icons-react";
+import { IconAlertCircle, IconArrowLeft, IconCheck, IconDeviceFloppy, IconFileTypePdf, IconLoader2 } from "@tabler/icons-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import EditableTitle from "./EditableTitle";
 import OverviewPanel from "./OverviewPanel";
+import PrintView from "./PrintView";
 import SubsectionPanel from "./SubsectionPanel";
 import TreeNav, { type Selection } from "./TreeNav";
 import { mapSection, mapSubsection, remapIds, type Section } from "@/lib/template";
@@ -99,6 +100,18 @@ export default function Editor({ id }: { id: string }) {
     }
   }, [id]);
 
+  // Prints the print-only view (the browser's "Save as PDF"), named after the template.
+  const exportPdf = useCallback(() => {
+    const previous = document.title;
+    const restore = () => {
+      document.title = previous;
+      window.removeEventListener("afterprint", restore);
+    };
+    document.title = nameRef.current.trim() || "template";
+    window.addEventListener("afterprint", restore);
+    window.print();
+  }, []);
+
   // Hide the "Saved" confirmation after a moment.
   useEffect(() => {
     if (status !== "saved") return;
@@ -167,23 +180,7 @@ export default function Editor({ id }: { id: string }) {
         <TreeNav tree={tree} selection={selection} onSelect={setSelection} onChange={(t) => edit({ tree: t })} />
       </aside>
 
-      <main className={`editor__main${dirty || status === "saved" ? " has-savebar" : ""}`}>
-        {(dirty || status === "saved") && (
-          <div className="savebar">
-            {status === "error" && (
-              <span className="savebar__error"><IconAlertCircle size={16} /> Couldn’t save. Try again.</span>
-            )}
-            {status === "saved" && !dirty ? (
-              <span className="savebar__ok"><IconCheck size={15} /> Saved</span>
-            ) : (
-              <button className="btn btn--primary" onClick={save} disabled={status === "saving"}>
-                {status === "saving"
-                  ? <><IconLoader2 size={16} className="spin" /> Saving…</>
-                  : <><IconDeviceFloppy size={16} /> Save</>}
-              </button>
-            )}
-          </div>
-        )}
+      <main className="editor__main">
         {subsection && section ? (
           <>
             <SubsectionPanel
@@ -227,7 +224,26 @@ export default function Editor({ id }: { id: string }) {
           />
         )}
       </main>
+
+      <div className="fab" role="toolbar" aria-label="Template actions">
+        {status === "error" && (
+          <span className="fab__error"><IconAlertCircle size={16} /> Couldn’t save. Try again.</span>
+        )}
+        {status === "saved" && !dirty && (
+          <span className="fab__ok"><IconCheck size={15} /> Saved</span>
+        )}
+        <button className="btn btn--primary" onClick={save} disabled={!dirty || status === "saving"}>
+          {status === "saving"
+            ? <><IconLoader2 size={16} className="spin" /> Saving…</>
+            : <><IconDeviceFloppy size={16} /> Save</>}
+        </button>
+        <span className="fab__divider" aria-hidden />
+        <button className="btn" onClick={exportPdf}>
+          <IconFileTypePdf size={16} /> Export PDF
+        </button>
+      </div>
     </div>
+    <PrintView name={name} tree={tree} />
     </Tooltip.Provider>
   );
 }
