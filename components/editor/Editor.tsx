@@ -1,10 +1,12 @@
 "use client";
 
-import { IconAlertCircle, IconArrowLeft, IconCheck, IconDeviceFloppy, IconFileExport, IconLoader2 } from "@tabler/icons-react";
+import { IconAlertCircle, IconArrowLeft, IconCheck, IconDeviceFloppy, IconFileExport, IconLoader2, IconSitemap } from "@tabler/icons-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ExportDialog from "./ExportDialog";
+import TreeViewDialog from "./TreeViewDialog";
+import Tip from "./Tip";
 import EditableTitle from "./EditableTitle";
 import OverviewPanel from "./OverviewPanel";
 import { downloadPdf } from "@/lib/exportPdf";
@@ -103,6 +105,7 @@ export default function Editor({ id }: { id: string }) {
   }, [id]);
 
   const [exportOpen, setExportOpen] = useState(false);
+  const [treeViewOpen, setTreeViewOpen] = useState(false);
 
   // Hide the "Saved" confirmation after a moment.
   useEffect(() => {
@@ -217,6 +220,12 @@ export default function Editor({ id }: { id: string }) {
         )}
       </main>
 
+      <div className="fab-dock">
+      <Tip label="View as tree">
+        <button className="fab-square" aria-label="View as tree" onClick={() => setTreeViewOpen(true)}>
+          <IconSitemap size={18} />
+        </button>
+      </Tip>
       <div className="fab" role="toolbar" aria-label="Template actions">
         {status === "error" && (
           <span className="fab__error"><IconAlertCircle size={16} /> Couldn’t save. Try again.</span>
@@ -234,7 +243,9 @@ export default function Editor({ id }: { id: string }) {
           <IconFileExport size={16} /> Export
         </button>
       </div>
+      </div>
     </div>
+    <TreeViewDialog open={treeViewOpen} onOpenChange={setTreeViewOpen} name={name} tree={tree} />
     <ExportDialog
       open={exportOpen}
       onOpenChange={setExportOpen}

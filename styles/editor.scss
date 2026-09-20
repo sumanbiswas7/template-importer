@@ -55,8 +55,14 @@ $limit: #dfd365;
 }
 
 // Floating actions, bottom right.
+.fab-dock { position: fixed; right: 20px; bottom: 20px; z-index: 30; display: flex; align-items: center; gap: 8px; }
+.fab-square {
+  display: grid; place-items: center; width: 52px; height: 52px; padding: 0; border: $border; border-radius: 12px;
+  background: $bg; color: $text; cursor: pointer; box-shadow: 0 6px 24px rgb(0 0 0 / 0.14);
+  &:hover { background: $gray-100; }
+}
 .fab {
-  position: fixed; right: 20px; bottom: 20px; z-index: 30; display: flex; align-items: center; gap: 8px;
+  position: static; display: flex; align-items: center; gap: 8px;
   padding: 8px; border: $border; border-radius: 12px; background: $bg; box-shadow: 0 6px 24px rgb(0 0 0 / 0.14);
   .btn {
     padding: 6px 12px; font-size: 14px; gap: 6px; border: 0; background: none; color: $text; box-shadow: none;
@@ -392,4 +398,44 @@ $limit: #dfd365;
     width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px; background: none; color: $muted; cursor: pointer;
     &:hover { background: rgb(0 0 0 / 0.06); color: $text; }
   }
+}
+
+// --- Tree view (React Flow) -------------------------------------------------
+.tv {
+  position: fixed; inset: 24px; z-index: 50; display: flex; flex-direction: column; padding: 20px 24px 16px;
+  background: $bg; border: $border; border-radius: 20px; box-shadow: 0 24px 60px rgb(10 10 10 / 0.25);
+  .modal__bar { gap: 16px; .tv__hint { margin-right: auto; font-size: 13px; } }
+  &__canvas { flex: 1; min-height: 0; border: $border; border-radius: 12px; overflow: hidden; background: $canvas; }
+  &__legend { display: flex; gap: 16px; margin-top: 12px; color: $muted; font-size: 13px; span { display: inline-flex; align-items: center; gap: 6px; } }
+  &__dot {
+    flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--c);
+    &--defect { --c: #{$defect}; } &--info { --c: #{$info}; } &--limit { --c: #{$limit}; }
+  }
+
+  &__node {
+    position: relative; display: flex; align-items: center; gap: 10px; width: 250px; min-height: 60px; padding: 10px 12px;
+    border: $border; border-radius: 12px; background: $bg; color: $text; font: inherit; text-align: left;
+    &.is-hidden { opacity: 0.5; }
+    &--root { width: 220px; flex-direction: column; align-items: flex-start; gap: 2px; background: $black; color: #fff; .muted { color: $gray-200; } }
+    &--section { cursor: pointer; &:hover { border-color: $black; } }
+    &:hover { z-index: 2; }
+  }
+  &__text { display: grid; gap: 2px; min-width: 0; strong, .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .muted { font-size: 12px; } }
+  &__badges { display: flex; gap: 4px; margin-left: auto; }
+  &__badge {
+    min-width: 20px; padding: 1px 6px; border-radius: 999px; background: var(--c); color: #fff; font-size: 12px; font-weight: 600; text-align: center;
+    &--defect { --c: #{$defect}; } &--info { --c: #{$info}; } &--limit { --c: #{$limit}; }
+  }
+  &__pop {
+    display: none; position: absolute; left: 0; top: calc(100% + 6px); z-index: 10; width: 280px; padding: 10px 12px;
+    border: $border; border-radius: 10px; background: $bg; box-shadow: 0 8px 24px rgb(0 0 0 / 0.16); font-size: 13px;
+    ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+    li { display: flex; align-items: center; gap: 8px; span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+    p { margin: 6px 0 0; }
+  }
+  &__node--sub:hover &__pop { display: block; }
+
+  .react-flow__node:has(.tv__node--sub:hover) { z-index: 1000 !important; }
+  .react-flow__handle { width: 6px; height: 6px; min-width: 0; min-height: 0; background: $gray-300; border: 0; }
+  .react-flow__edge-path { stroke: $gray-300; }
 }
