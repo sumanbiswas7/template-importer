@@ -283,6 +283,35 @@ h1, h2 { letter-spacing: -0.02em; }
   &__desc { margin: 0 0 20px; color: $muted; }
 }
 
+.modal--status { width: min(360px, calc(100vw - 32px)); text-align: center; }
+.import-status {
+  display: grid;
+  justify-items: center;
+
+  &__icon {
+    display: grid; place-items: center;
+    width: 68px; height: 68px; margin-bottom: 16px;
+    border-radius: 50%; background: $gray-100; color: $black;
+    transition: background 0.25s, color 0.25s;
+  }
+  .modal__desc { margin-bottom: 16px; }
+
+  &__steps {
+    margin: 0; padding: 0; list-style: none; display: grid; gap: 6px;
+    color: $gray-300; font-size: 14px;
+    li::before { content: "○ "; }
+    .is-active { color: $text; font-weight: 550; }
+    .is-done { color: #2c7a3f; &::before { content: "✓ "; } }
+  }
+
+  &--done &__icon {
+    background: #2c7a3f; color: #fff;
+    animation: tick-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  &--done .modal__desc { margin-bottom: 0; }
+}
+@keyframes tick-pop { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
 .form {
   display: grid;
   gap: 16px;

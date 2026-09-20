@@ -8,10 +8,21 @@ import EditableTitle from "./EditableTitle";
 import OverviewPanel from "./OverviewPanel";
 import SubsectionPanel from "./SubsectionPanel";
 import TreeNav, { type Selection } from "./TreeNav";
-import { mapSection, mapSubsection, type Section } from "@/lib/template";
+import { mapSection, mapSubsection, remapIds, type Section } from "@/lib/template";
 import "@/styles/editor.scss";
 
 type Status = "idle" | "saving" | "saved" | "error";
+
+// Asks the server to pick icons for the template's sections (LLM, stored in the database).
+// Best-effort: on failure the sections just show the placeholder icon. Never throws.
+async function matchSectionIcons(id: string): Promise<Record<string, string>> {
+  try {
+    const res = await fetch(`/api/templates/icons?id=${encodeURIComponent(id)}`, { method: "POST" });
+    return res.ok ? (await res.json()).icons ?? {} : {};
+  } catch {
+    return {};
+  }
+}
 
 export default function Editor({ id }: { id: string }) {
   const [name, setName] = useState("");
@@ -20,6 +31,7 @@ export default function Editor({ id }: { id: string }) {
   const [selection, setSelection] = useState<Selection>(null);
   const [dirty, setDirty] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
+  const [settingUp, setSettingUp] = useState(false); // first open: icons are being chosen
 
   // Refs mirror state so back-to-back edits in one tick merge into the latest values.
   const nameRef = useRef("");
@@ -27,16 +39,28 @@ export default function Editor({ id }: { id: string }) {
   const version = useRef(0); // bumps on every edit, so a save can tell if newer edits arrived mid-flight
 
   useEffect(() => {
-    fetch(`/api/templates?id=${encodeURIComponent(id)}`)
-      .then(async (res) => {
-        if (!res.ok) return setMissing(true);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/templates?id=${encodeURIComponent(id)}`);
+        if (!res.ok) return void (!cancelled && setMissing(true));
         const doc = await res.json();
+        let loaded: Section[] = doc.tree ?? [];
+        if (!doc.iconsResolved && loaded.length > 0) {
+          setSettingUp(true);
+          const icons = await matchSectionIcons(id);
+          loaded = loaded.map((s) => (icons[s.id] ? { ...s, icon: icons[s.id] } : s));
+        }
+        if (cancelled) return;
         nameRef.current = doc.name;
-        treeRef.current = doc.tree ?? [];
+        treeRef.current = loaded;
         setName(doc.name);
-        setTree(treeRef.current);
-      })
-      .catch(() => setMissing(true));
+        setTree(loaded);
+      } catch {
+        if (!cancelled) setMissing(true);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [id]);
 
   const edit = useCallback((next: { name?: string; tree?: Section[] }) => {
@@ -57,6 +81,17 @@ export default function Editor({ id }: { id: string }) {
         body: JSON.stringify({ name: nameRef.current, tree: treeRef.current }),
       });
       if (!res.ok) throw new Error();
+      // New rows got database ids; swap them in (edits made while saving keep their own).
+      const { idMap }: { idMap: Record<string, string> } = await res.json();
+      if (Object.keys(idMap).length > 0) {
+        treeRef.current = remapIds(treeRef.current, idMap);
+        setTree(treeRef.current);
+        setSelection((sel) => sel && {
+          sectionId: idMap[sel.sectionId] ?? sel.sectionId,
+          subsectionId: sel.subsectionId && (idMap[sel.subsectionId] ?? sel.subsectionId),
+          commentId: sel.commentId && (idMap[sel.commentId] ?? sel.commentId),
+        });
+      }
       if (version.current === saved) setDirty(false);
       setStatus("saved");
     } catch {
@@ -90,12 +125,20 @@ export default function Editor({ id }: { id: string }) {
   if (missing) {
     return (
       <div className="editor-msg">
-        <p>That template doesn’t exist (the demo store resets when the server restarts).</p>
+        <p>That template doesn’t exist.</p>
         <Link className="btn" href="/">Back to templates</Link>
       </div>
     );
   }
-  if (!tree) return <div className="editor-msg muted">Loading…</div>;
+  if (!tree) {
+    return (
+      <div className="editor-msg muted" role="status">
+        <IconLoader2 size={28} className="spin" />
+        <p>{settingUp ? "Setting up your template…" : "Loading…"}</p>
+        {settingUp && <p className="muted">Choosing icons for each section. This only happens once.</p>}
+      </div>
+    );
+  }
 
   const section = tree.find((s) => s.id === selection?.sectionId);
   const subsection = section?.subsections.find((s) => s.id === selection?.subsectionId);

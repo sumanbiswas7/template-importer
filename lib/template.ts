@@ -57,13 +57,39 @@ export function countComments(tree: Section[]) {
   return { sections: tree.length, subsections, comments: counts.defect + counts.info + counts.limit, counts };
 }
 
+export const formatCounts = (sections: number, subsections: number, comments: number) =>
+  `${sections} sections · ${subsections} subsections · ${comments} comments`;
+
 export function summarize(tree: Section[]) {
   const n = countComments(tree);
-  return `${n.sections} sections · ${n.subsections} subsections · ${n.comments} comments`;
+  return formatCounts(n.sections, n.subsections, n.comments);
 }
 
 export function isSectionArray(v: unknown): v is Section[] {
   return Array.isArray(v) && v.every((s) => s && typeof s.id === "string" && Array.isArray(s.subsections));
+}
+
+/** True when no section, subsection or comment id appears twice. */
+export function hasUniqueIds(tree: Section[]): boolean {
+  const seen = new Set<string>();
+  const add = (id: unknown) => typeof id === "string" && !seen.has(id) && !!seen.add(id);
+  return tree.every((s) => add(s.id) && (s.subsections ?? []).every(
+    (sub) => add(sub.id) && (sub.comments ?? []).every((c) => add(c.id)),
+  ));
+}
+
+/** Swaps ids using an old → new map (what save_template returns for rows it inserted). */
+export function remapIds(tree: Section[], map: Record<string, string>): Section[] {
+  const to = (id: string) => map[id] ?? id;
+  return tree.map((s) => ({
+    ...s,
+    id: to(s.id),
+    subsections: s.subsections.map((sub) => ({
+      ...sub,
+      id: to(sub.id),
+      comments: sub.comments.map((c) => ({ ...c, id: to(c.id) })),
+    })),
+  }));
 }
 
 // --- immutable updates -------------------------------------------------------

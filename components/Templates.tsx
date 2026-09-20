@@ -25,9 +25,18 @@ export default function Templates() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("newest");
 
+  const [loadError, setLoadError] = useState("");
+
   const load = useCallback(async () => {
-    const res = await fetch("/api/templates");
-    setTemplates(await res.json());
+    try {
+      const res = await fetch("/api/templates");
+      const body = await res.json();
+      if (!res.ok || !Array.isArray(body)) throw new Error(body?.error ?? "Couldn’t load templates.");
+      setTemplates(body);
+      setLoadError("");
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Couldn’t load templates.");
+    }
   }, []);
 
   useEffect(() => {
@@ -41,11 +50,11 @@ export default function Templates() {
 
   async function duplicate(t: Template) {
     // The list omits the tree, so fetch the full document to copy it.
-    const { tree } = await (await fetch(`/api/templates?id=${encodeURIComponent(t.id)}`)).json();
+    const { tree, iconsResolved } = await (await fetch(`/api/templates?id=${encodeURIComponent(t.id)}`)).json();
     await fetch("/api/templates", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: `${t.name} (copy)`, content: t.content, tree }),
+      body: JSON.stringify({ name: `${t.name} (copy)`, tree, iconsResolved }),
     });
     load();
   }
@@ -76,7 +85,9 @@ export default function Templates() {
       </nav>
 
       <main className="page">
-        {templates === null ? (
+        {loadError && templates === null ? (
+          <p className="muted">{loadError}</p>
+        ) : templates === null ? (
           <p className="muted">Loading…</p>
         ) : empty ? (
           <ImportDialog onImported={load} className="import-big">

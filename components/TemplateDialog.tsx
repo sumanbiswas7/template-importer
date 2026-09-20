@@ -27,7 +27,7 @@ export default function TemplateDialog({
     const res = await fetch(`/api/templates?id=${encodeURIComponent(template.id)}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: data.get("name"), content: data.get("content") }),
+      body: JSON.stringify({ name: data.get("name") }),
     });
     setBusy(false);
     if (!res.ok) {
@@ -48,7 +48,7 @@ export default function TemplateDialog({
             {mode === "edit" ? "Edit template" : template.name}
           </Dialog.Title>
           <Dialog.Description className="modal__desc">
-            {mode === "edit" ? "Update the name and content." : "Template content"}
+            {mode === "edit" ? "Rename this template." : "Template content"}
           </Dialog.Description>
           {mode === "view" ? (
             <>
@@ -62,10 +62,6 @@ export default function TemplateDialog({
               <label>
                 Name
                 <input name="name" defaultValue={template.name} required autoFocus />
-              </label>
-              <label>
-                Content
-                <textarea name="content" rows={6} defaultValue={template.content} required />
               </label>
               {error && <p className="form__error">{error}</p>}
               <div className="form__actions">
