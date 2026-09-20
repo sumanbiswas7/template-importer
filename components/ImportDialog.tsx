@@ -3,6 +3,7 @@
 import { IconUpload } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import { normalizeName, resolveSectionIcons } from "@/lib/iconRegistry";
 import { parseTemplateFile } from "@/lib/parseTemplate";
 
 // Not a dialog any more: clicking opens the file picker, then imports and opens the editor.
@@ -25,7 +26,10 @@ export default function ImportDialog({
     if (!file) return;
     setBusy(true);
     try {
-      const tree = await parseTemplateFile(file);
+      const parsed = await parseTemplateFile(file);
+      // Icons are best-effort: if matching fails the sections just show the placeholder.
+      const icons = await resolveSectionIcons(parsed.map((s) => s.name));
+      const tree = parsed.map((s) => ({ ...s, icon: icons[normalizeName(s.name)] }));
       const res = await fetch("/api/templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

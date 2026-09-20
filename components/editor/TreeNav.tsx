@@ -2,12 +2,13 @@
 
 import * as Menu from "@radix-ui/react-dropdown-menu";
 import {
-  IconChevronDown, IconChevronRight, IconChevronsDown, IconChevronsUp, IconDotsVertical, IconEdit, IconHome, IconLayersSubtract,
+  IconChevronDown, IconChevronRight, IconChevronsDown, IconChevronsUp, IconDotsVertical, IconEdit, IconHome,
   IconPlus, IconTrash,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import SortableList from "./Sortable";
 import Tip from "./Tip";
+import { SectionIcon } from "@/lib/sectionIcons";
 import {
   mapSection, newSection, newSubsection, type Section,
 } from "@/lib/template";
@@ -146,7 +147,7 @@ export default function TreeNav({
                 <button className="tree__chevron" aria-label={open ? "Collapse" : "Expand"} onClick={() => toggle(section.id)}>
                   {open ? <IconChevronDown size={18} /> : <IconChevronRight size={18} />}
                 </button>
-                <IconLayersSubtract size={18} className="tree__icon" />
+                <SectionIcon icon={section.icon} className="tree__icon" />
                 {label(section.id, section.name, () => onSelect({ sectionId: section.id }))}
                 {menu(section.id, () => removeSection(section))}
               </div>

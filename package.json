@@ -20,6 +20,7 @@
     "@tiptap/react": "^3.31.3",
     "@tiptap/starter-kit": "^3.31.3",
     "next": "^16.3.5",
+    "openai": "^7.20.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "sass": "^1.104.1",

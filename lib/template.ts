@@ -17,7 +17,7 @@ export type Comment = {
 };
 
 export type Subsection = { id: string; name: string; comments: Comment[] };
-export type Section = { id: string; name: string; subsections: Subsection[] };
+export type Section = { id: string; name: string; icon?: string; subsections: Subsection[] };
 
 export const COMMENT_TYPES: { type: CommentType; label: string }[] = [
   { type: "defect", label: "Defects / Deficiencies" },
