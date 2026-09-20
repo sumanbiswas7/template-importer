@@ -2,7 +2,7 @@ node_modules
 .next
 .vercel
 next-env.d.ts
-templates
+/templates
 .env.local
 .env*.local
 e2e/results
