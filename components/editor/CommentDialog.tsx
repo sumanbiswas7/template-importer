@@ -101,10 +101,6 @@ export default function CommentDialog({
                   onChange={(c) => patch({ category: c === "none" ? "" : (c as Category) })} />
                 <Segmented label="Answer type" value={shown.answerType}
                   options={answerOptions(shown.answerType)} onChange={(answerType) => patch({ answerType })} />
-                <label className="field">
-                  Multiple choice options <small>comma-separated</small>
-                  <input value={shown.options} onChange={(e) => patch({ options: e.target.value })} />
-                </label>
               </div>
               <div className="form__actions modal__footer">
                 {!isNew && (
