@@ -4,3 +4,4 @@ node_modules
 next-env.d.ts
 templates
 .env.local
+.env*.local

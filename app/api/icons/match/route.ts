@@ -1,27 +1,49 @@
 import OpenAI from "openai";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 const MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
-const bad = (error: string, status = 400) => NextResponse.json({ error }, { status });
+const normalize = (name: string) => name.toLowerCase().replace(/\s+/g, " ").trim();
+
 const isStringArray = (v: unknown, max: number): v is string[] =>
   Array.isArray(v) && v.length > 0 && v.length <= max && v.every((s) => typeof s === "string" && s.length > 0 && s.length <= 120);
 
-// Picks one icon key per section name, from the caller's list of allowed keys.
-// Body: { names: string[], icons: string[] } → { matches: { [name]: iconKey } } (unmatched names omitted)
+// Body: { names: string[] } → { icons: { [name]: iconKey }, error?: string }
+// Names already in Supabase (`section_icons`) are answered from there. Only the rest go to the
+// LLM, which picks from the `icons` table; its answers are saved back. Best-effort: on any
+// failure the response still carries whatever was already known (`error` says what went wrong).
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
-  if (!isStringArray(body?.names, 100) || !isStringArray(body?.icons, 500)) {
-    return bad("Expected non-empty `names` and `icons` string arrays.");
+  if (!isStringArray(body?.names, 100)) {
+    return NextResponse.json({ error: "Expected a non-empty `names` string array." }, { status: 400 });
   }
   const names: string[] = body.names;
-  const icons: string[] = body.icons;
+  const supabase = createClient(await cookies());
 
-  if (!process.env.OPENAI_API_KEY) {
-    return bad("OpenAI credentials aren't configured (set OPENAI_API_KEY).", 503);
-  }
+  const keyOf = new Map<string, string>(); // normalized name → icon key
+  const respond = (error?: string) =>
+    NextResponse.json({
+      icons: Object.fromEntries(names.filter((n) => keyOf.has(normalize(n))).map((n) => [n, keyOf.get(normalize(n))!])),
+      ...(error && { error }),
+    });
+
+  const wanted = [...new Set(names.map(normalize))];
+  const cached = await supabase.from("section_icons").select("name, icon_key").in("name", wanted);
+  if (cached.error) return respond(`Supabase: ${cached.error.message}`);
+  for (const row of cached.data) keyOf.set(row.name, row.icon_key);
+
+  const unknown = names.filter((n, i) => !keyOf.has(normalize(n)) && names.findIndex((m) => normalize(m) === normalize(n)) === i);
+  if (unknown.length === 0) return respond();
+  if (!process.env.OPENAI_API_KEY) return respond("OpenAI credentials aren't configured (set OPENAI_API_KEY).");
+
+  const vocabulary = await supabase.from("icons").select("key");
+  if (vocabulary.error) return respond(`Supabase: ${vocabulary.error.message}`);
+  const icons = vocabulary.data.map((r) => r.key as string);
+  if (icons.length === 0) return respond("The icons table is empty.");
 
   try {
     const client = new OpenAI(); // reads OPENAI_API_KEY
@@ -36,7 +58,7 @@ export async function POST(req: Request) {
             "(e.g. 'Heating' → a flame, 'Roof' → a roof/house). If nothing fits reasonably, answer \"none\" - " +
             "a placeholder is better than a misleading icon. Return one entry per input name, using the name exactly as given.",
         },
-        { role: "user", content: JSON.stringify({ sections: names }) },
+        { role: "user", content: JSON.stringify({ sections: unknown }) },
       ],
       response_format: {
         type: "json_schema",
@@ -65,23 +87,29 @@ export async function POST(req: Request) {
 
     const choice = completion.choices[0];
     if (!choice || choice.finish_reason === "length" || choice.message.refusal) {
-      return bad("The model couldn't complete the icon match.", 502);
+      return respond("The model couldn't complete the icon match.");
     }
-    const parsed = JSON.parse(choice.message.content ?? "{}") as {
-      matches?: { name: string; icon: string }[];
-    };
+    const parsed = JSON.parse(choice.message.content ?? "{}") as { matches?: { name: string; icon: string }[] };
 
     // Trust nothing: keep only names we asked about and keys we allowed.
-    const asked = new Set(names);
+    const asked = new Set(unknown);
     const allowed = new Set(icons);
-    const matches: Record<string, string> = {};
+    const rows: { name: string; icon_key: string }[] = [];
     for (const m of parsed.matches ?? []) {
-      if (asked.has(m.name) && allowed.has(m.icon)) matches[m.name] = m.icon;
+      if (asked.has(m.name) && allowed.has(m.icon)) {
+        keyOf.set(normalize(m.name), m.icon);
+        rows.push({ name: normalize(m.name), icon_key: m.icon });
+      }
     }
-    return NextResponse.json({ matches });
+    if (rows.length > 0) {
+      // Insert-only: existing answers are never overwritten.
+      const saved = await supabase.from("section_icons").upsert(rows, { onConflict: "name", ignoreDuplicates: true });
+      if (saved.error) return respond(`Supabase: ${saved.error.message}`);
+    }
+    return respond();
   } catch (err) {
-    if (err instanceof OpenAI.AuthenticationError) return bad("OpenAI rejected the API key.", 503);
-    if (err instanceof OpenAI.RateLimitError) return bad("Rate limited. Try again shortly.", 429);
-    return bad("Icon matching failed.", 502);
+    if (err instanceof OpenAI.AuthenticationError) return respond("OpenAI rejected the API key.");
+    if (err instanceof OpenAI.RateLimitError) return respond("Rate limited. Try again shortly.");
+    return respond("Icon matching failed.");
   }
 }

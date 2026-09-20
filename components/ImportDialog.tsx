@@ -3,8 +3,21 @@
 import { IconUpload } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type ChangeEvent, type ReactNode } from "react";
-import { normalizeName, resolveSectionIcons } from "@/lib/iconRegistry";
 import { parseTemplateFile } from "@/lib/parseTemplate";
+
+// Section name → icon key, from the server (Supabase cache + LLM). Never throws.
+async function matchSectionIcons(names: string[]): Promise<Record<string, string>> {
+  try {
+    const res = await fetch("/api/icons/match", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ names: [...new Set(names)] }),
+    });
+    return res.ok ? (await res.json()).icons ?? {} : {};
+  } catch {
+    return {};
+  }
+}
 
 // Not a dialog any more: clicking opens the file picker, then imports and opens the editor.
 export default function ImportDialog({
@@ -28,8 +41,8 @@ export default function ImportDialog({
     try {
       const parsed = await parseTemplateFile(file);
       // Icons are best-effort: if matching fails the sections just show the placeholder.
-      const icons = await resolveSectionIcons(parsed.map((s) => s.name));
-      const tree = parsed.map((s) => ({ ...s, icon: icons[normalizeName(s.name)] }));
+      const icons = await matchSectionIcons(parsed.map((s) => s.name));
+      const tree = parsed.map((s) => ({ ...s, icon: icons[s.name] }));
       const res = await fetch("/api/templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
