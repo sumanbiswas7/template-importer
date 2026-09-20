@@ -171,18 +171,22 @@ $limit: #dfd365;
 
 .group {
   --accent: #{$defect};
-  margin-bottom: 24px; padding: 20px 20px 20px 24px; background: $bg; border: $border;
+  margin-bottom: 24px; padding: 20px; background: $bg; border: $border;
   border-radius: $radius;
 
   &--info { --accent: #{$info}; }
   &--limit { --accent: #{$limit}; }
-  // Label colors are derived from the group accent so they stay in sync with the variables above.
-  .pill--group {
-    background: color-mix(in srgb, var(--accent) 20%, white);
-    color: color-mix(in srgb, var(--accent) 50%, black);
+  // Header is a soft tint of the group accent; text is a darker shade of the same hue.
+  &__head {
+    --ink: color-mix(in srgb, var(--accent) 45%, black);
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    margin: -20px -20px 12px; padding: 16px 20px;
+    background: color-mix(in srgb, var(--accent) 22%, white); color: var(--ink); border-radius: $radius $radius 0 0;
   }
-
-  &__head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  &__titles { display: grid; gap: 2px; min-width: 0; }
+  &__title { font-size: 17px; font-weight: 650; letter-spacing: -0.01em; }
+  &__hint { font-size: 13px; opacity: 0.8; }
+  &__count { margin-left: auto; border-color: transparent; background: rgb(255 255 255 / 0.6); color: var(--ink); }
   &__add { margin-left: auto; }
   &__list { display: grid; gap: 12px; }
   &__empty { padding: 8px 0; }
@@ -228,9 +232,25 @@ $limit: #dfd365;
 
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
 .stat {
-  display: grid; gap: 2px; padding: 20px; background: $bg; border: $border; border-radius: $radius;
-  strong { font-size: 32px; letter-spacing: -0.02em; }
-  span { color: $muted; }
+  --accent: #{$gray-200};
+  display: grid; gap: 2px; padding: 18px 20px;
+  background: color-mix(in srgb, var(--accent) 10%, white);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, white); border-radius: $radius;
+  &--defect { --accent: #{$defect}; }
+  &--info { --accent: #{$info}; }
+  &--limit { --accent: #{$limit}; }
+  &--plain { background: $bg; border: $border; }
+  &__icon { margin-bottom: 6px; color: color-mix(in srgb, var(--accent) 80%, black); }
+  &--plain &__icon { color: $muted; }
+  strong { font-size: 32px; line-height: 1.1; letter-spacing: -0.02em; }
+  span { color: $muted; font-size: 14px; }
+}
+.mix {
+  display: flex; gap: 3px; height: 10px; margin: -8px 0 24px; overflow: hidden; border-radius: 999px;
+  &__seg { min-width: 6px; border-radius: 999px; background: var(--accent); }
+  &__seg--defect { --accent: #{$defect}; }
+  &__seg--info { --accent: #{$info}; }
+  &__seg--limit { --accent: #{$limit}; }
 }
 
 .tip {
@@ -251,14 +271,20 @@ $limit: #dfd365;
 
 .stats { margin-bottom: 24px; }
 .jump {
-  list-style: none; margin: 0; padding: 0;
+  // Pull the list out by the button padding so row content lines up with the header text.
+  list-style: none; margin: 0 -8px; padding: 0;
   li + li { border-top: 1px solid $gray-100; }
   button {
     display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 8px;
     border: 0; border-radius: 8px; background: none; font: inherit; text-align: left; cursor: pointer;
     &:hover { background: $gray-50; }
   }
-  &__icon { flex: none; color: var(--accent); }
+  button:hover { background: color-mix(in srgb, var(--accent) 8%, white); .jump__go { opacity: 1; transform: none; } }
+  &__badge {
+    display: grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 8px;
+    background: color-mix(in srgb, var(--accent) 16%, white); color: color-mix(in srgb, var(--accent) 55%, black);
+  }
+  &__go { flex: none; color: $muted; opacity: 0; transform: translateX(-4px); transition: opacity .15s, transform .15s; }
   &__main {
     display: grid; flex: 1; min-width: 0;
     strong { font-weight: 600; }
@@ -266,7 +292,8 @@ $limit: #dfd365;
     em { color: $muted; font-weight: 400; }
   }
   &__where {
-    display: inline-flex; align-items: center; gap: 4px; flex: none; max-width: 40%; color: $muted;
+    display: inline-flex; align-items: center; gap: 4px; flex: none; max-width: 40%; padding: 3px 10px;
+    border-radius: 999px; background: $gray-50; color: $muted;
     font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   &__more { margin-top: 12px; }
@@ -336,3 +363,27 @@ $limit: #dfd365;
   }
 }
 .modal__spacer { flex: 1; }
+
+.overview {
+  &__top { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 46px; }
+  &__empty { margin: 0 0 24px; }
+}
+// Leave room for the floating Save button that shares this row.
+.has-savebar .osearch { margin-right: 130px; }
+
+.osearch {
+  position: relative; display: block; flex: none; width: 220px; transition: margin-right .15s;
+  input {
+    display: block; width: 100%; height: 34px; padding: 0 30px 0 32px; border: $border; border-radius: 8px;
+    background: $bg; color: $text; font: inherit; font-size: 14px; appearance: none;
+    &::placeholder { color: $muted; }
+    &:focus { outline: none; border-color: $black; }
+    &::-webkit-search-cancel-button { display: none; }
+  }
+  &__icon { position: absolute; top: 50%; left: 10px; transform: translateY(-50%); color: $muted; pointer-events: none; }
+  &__clear {
+    position: absolute; top: 50%; right: 6px; transform: translateY(-50%); display: grid; place-items: center;
+    width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px; background: none; color: $muted; cursor: pointer;
+    &:hover { background: rgb(0 0 0 / 0.06); color: $text; }
+  }
+}

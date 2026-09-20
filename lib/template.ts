@@ -19,10 +19,10 @@ export type Comment = {
 export type Subsection = { id: string; name: string; comments: Comment[] };
 export type Section = { id: string; name: string; icon?: string; subsections: Subsection[] };
 
-export const COMMENT_TYPES: { type: CommentType; label: string }[] = [
-  { type: "defect", label: "Defects / Deficiencies" },
-  { type: "info", label: "Information" },
-  { type: "limit", label: "Limitations" },
+export const COMMENT_TYPES: { type: CommentType; label: string; hint: string }[] = [
+  { type: "defect", label: "Defects / Deficiencies", hint: "Problems and shortfalls to be aware of" },
+  { type: "info", label: "Information", hint: "Helpful context and notes" },
+  { type: "limit", label: "Limitations", hint: "Restrictions and known boundaries" },
 ];
 
 export const CATEGORY_LABELS: Record<Category, string> = {

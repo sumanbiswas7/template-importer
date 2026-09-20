@@ -124,7 +124,7 @@ export default function Editor({ id }: { id: string }) {
         <TreeNav tree={tree} selection={selection} onSelect={setSelection} onChange={(t) => edit({ tree: t })} />
       </aside>
 
-      <main className="editor__main">
+      <main className={`editor__main${dirty || status === "saved" ? " has-savebar" : ""}`}>
         {(dirty || status === "saved") && (
           <div className="savebar">
             {status === "error" && (
