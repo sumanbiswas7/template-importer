@@ -80,7 +80,12 @@ export default function CommentDialog({
     <Dialog.Root open={comment !== null} onOpenChange={(open) => !open && requestClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="overlay" />
-        <Dialog.Content className="modal modal--wide" aria-describedby={undefined}>
+        <Dialog.Content
+          className="modal modal--wide"
+          aria-describedby={undefined}
+          // Escape inside the link bar cancels the link edit, not the whole dialog.
+          onEscapeKeyDown={(e) => { if ((e.target as HTMLElement).closest?.("[data-linkbar]")) e.preventDefault(); }}
+        >
           {shown && (
             <>
               <div className="modal__bar">

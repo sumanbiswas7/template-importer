@@ -374,7 +374,32 @@ $limit: #dfd365;
     &:focus { outline: none; }
     p { margin: 0 0 0.6em; &:last-child { margin-bottom: 0; } }
     ul, ol { margin: 0 0 0.6em; padding-left: 1.4em; }
-    a { color: #3a6fd1; text-decoration: underline; }
+    a { color: #3a6fd1; text-decoration: underline; cursor: pointer; }
+  }
+
+  // Link strip under the toolbar (own inputs for adding / editing; Open / Edit / Remove for an existing link).
+  &__linkbar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px;
+    background: color-mix(in srgb, #3a6fd1 6%, white); border-bottom: $border; font-size: 14px;
+    &-icon { flex: none; color: #3a6fd1; }
+    &-url { flex: 1; min-width: 0; color: #3a6fd1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    &-fields { display: flex; flex: 1; gap: 8px; min-width: 240px; }
+    &-fields input {
+      flex: 1; min-width: 0; height: 34px; padding: 0 10px; border: $border; border-radius: 8px;
+      background: $bg; color: $text; font: inherit; font-size: 14px; font-weight: 400;
+      &:focus { outline: none; border-color: $black; }
+      &[aria-invalid="true"] { border-color: $danger; }
+    }
+    &-btn {
+      display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 10px; border: 1px solid $gray-200;
+      border-radius: 8px; background: $bg; color: $text; font: inherit; font-size: 14px; font-weight: 500;
+      text-decoration: none; white-space: nowrap; cursor: pointer;
+      &:hover { background: $gray-100; }
+      &--primary { background: $black; border-color: $black; color: #fff; &:hover { background: $black-hover; } }
+      &--danger { color: $danger; }
+      &--icon { width: 34px; padding: 0; justify-content: center; }
+    }
+    &-error { flex-basis: 100%; margin: 0; color: $danger; font-size: 13px; }
   }
 }
 .modal__spacer { flex: 1; }
