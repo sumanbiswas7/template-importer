@@ -393,24 +393,3 @@ $limit: #dfd365;
     &:hover { background: rgb(0 0 0 / 0.06); color: $text; }
   }
 }
-
-// --- Print / PDF ------------------------------------------------------------
-.print-doc { display: none; }
-@media print {
-  .editor, .fab { display: none !important; }
-  .print-doc {
-    display: block; color: #000; font: 12pt/1.45 system-ui, sans-serif;
-    h1 { margin: 0 0 16pt; font-size: 22pt; }
-    h2 { margin: 22pt 0 8pt; padding-bottom: 4pt; border-bottom: 1px solid #999; font-size: 16pt; break-after: avoid; }
-    h3 { margin: 14pt 0 6pt; font-size: 13pt; break-after: avoid; }
-    p, ul, ol { margin: 0 0 6pt; }
-    &__comment {
-      margin: 0 0 8pt; padding: 6pt 10pt; border-left: 3px solid #999; break-inside: avoid;
-      &--defect { border-color: $defect; }
-      &--info { border-color: $info; }
-      &--limit { border-color: $limit; }
-    }
-    &__meta { color: #555; font-size: 9.5pt; text-transform: uppercase; letter-spacing: 0.03em; }
-    &__name { font-weight: 650; }
-  }
-}

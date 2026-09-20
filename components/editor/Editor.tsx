@@ -1,12 +1,14 @@
 "use client";
 
-import { IconAlertCircle, IconArrowLeft, IconCheck, IconDeviceFloppy, IconFileTypePdf, IconLoader2 } from "@tabler/icons-react";
+import { IconAlertCircle, IconArrowLeft, IconCheck, IconDeviceFloppy, IconFileExport, IconLoader2 } from "@tabler/icons-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import ExportDialog from "./ExportDialog";
 import EditableTitle from "./EditableTitle";
 import OverviewPanel from "./OverviewPanel";
-import PrintView from "./PrintView";
+import { downloadPdf } from "@/lib/exportPdf";
+import { downloadXls } from "@/lib/exportTemplate";
 import SubsectionPanel from "./SubsectionPanel";
 import TreeNav, { type Selection } from "./TreeNav";
 import { mapSection, mapSubsection, remapIds, type Section } from "@/lib/template";
@@ -100,17 +102,7 @@ export default function Editor({ id }: { id: string }) {
     }
   }, [id]);
 
-  // Prints the print-only view (the browser's "Save as PDF"), named after the template.
-  const exportPdf = useCallback(() => {
-    const previous = document.title;
-    const restore = () => {
-      document.title = previous;
-      window.removeEventListener("afterprint", restore);
-    };
-    document.title = nameRef.current.trim() || "template";
-    window.addEventListener("afterprint", restore);
-    window.print();
-  }, []);
+  const [exportOpen, setExportOpen] = useState(false);
 
   // Hide the "Saved" confirmation after a moment.
   useEffect(() => {
@@ -238,12 +230,23 @@ export default function Editor({ id }: { id: string }) {
             : <><IconDeviceFloppy size={16} /> Save</>}
         </button>
         <span className="fab__divider" aria-hidden />
-        <button className="btn" onClick={exportPdf}>
-          <IconFileTypePdf size={16} /> Export PDF
+        <button className="btn" onClick={() => setExportOpen(true)}>
+          <IconFileExport size={16} /> Export
         </button>
       </div>
     </div>
-    <PrintView name={name} tree={tree} />
+    <ExportDialog
+      open={exportOpen}
+      onOpenChange={setExportOpen}
+      onPdf={() => {
+        downloadPdf(nameRef.current, tree);
+        setExportOpen(false);
+      }}
+      onXls={() => {
+        downloadXls(nameRef.current, tree);
+        setExportOpen(false);
+      }}
+    />
     </Tooltip.Provider>
   );
 }

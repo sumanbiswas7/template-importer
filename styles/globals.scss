@@ -347,3 +347,14 @@ h1, h2 { letter-spacing: -0.02em; }
 @media (prefers-reduced-motion: reduce) {
   .overlay, .modal { animation: none !important; }
 }
+
+.modal--export { width: min(440px, calc(100vw - 32px)); }
+.export-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.export-option {
+  display: grid; justify-items: start; gap: 4px; padding: 16px; text-align: left;
+  border: $border; border-radius: 12px; background: $bg; color: $text; font: inherit; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  &:hover { border-color: $black; background: $gray-50; }
+  svg { margin-bottom: 6px; }
+  span { color: $muted; font-size: 13px; }
+}
