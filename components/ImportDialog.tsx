@@ -36,7 +36,7 @@ export default function ImportDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: file.name.replace(/\.[^.]+$/, "").trim() || file.name, tree }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? "Something went wrong.");
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? "Couldn’t save the template. Try again.");
       const created: { id: string } = await res.json();
       const sections = tree.length;
       setSummary(`${sections} ${sections === 1 ? "section" : "sections"} imported from ${file.name}`);
@@ -44,8 +44,9 @@ export default function ImportDialog({
       onImported();
       // Let the success state register before opening the editor.
       await new Promise((r) => setTimeout(r, 1400));
+      // Stay on the status screen until the editor takes over (this component unmounts then),
+      // so a slow page load doesn't look like nothing happened.
       router.push(`/templates/${created.id}`);
-      setPhase("idle");
     } catch (err) {
       setPhase("idle");
       window.alert(err instanceof Error ? err.message : "Something went wrong.");

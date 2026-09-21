@@ -37,6 +37,14 @@ export function GET(req: Request) {
 // Body: { name, tree, iconsResolved? }. Every id in the tree is replaced by a database id.
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
+  // { copyOf: id } duplicates a stored template without the client sending the tree.
+  if (typeof body?.copyOf === "string") {
+    return handle(async (db) => {
+      const src = await getTemplate(db, body.copyOf);
+      if (!src) return bad("Not found.", 404);
+      return NextResponse.json(await addTemplate(db, `${src.name} (copy)`, src.tree, src.iconsResolved), { status: 201 });
+    });
+  }
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   if (!name) return bad("A name is required.");
   if (!validTree(body?.tree)) return bad("Invalid template structure.");

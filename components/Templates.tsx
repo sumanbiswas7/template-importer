@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  IconCalendar, IconChevronDown, IconCopy, IconExternalLink, IconEdit, IconHome,
+  IconCalendar, IconChevronDown, IconCopy, IconExternalLink, IconEdit, IconHome, IconLoader2,
   IconSearch, IconSortDescending, IconTrash, IconUpload, IconUser,
 } from "@tabler/icons-react";
 import Link from "next/link";
@@ -43,21 +43,31 @@ export default function Templates() {
     load();
   }, [load]);
 
-  async function remove(id: string) {
-    await fetch(`/api/templates?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-    load();
-  }
+  // Rows with a request in flight, so the button can show a spinner and can't be double-clicked.
+  const [busy, setBusy] = useState<Record<string, "duplicating" | "deleting">>({});
+  const track = async (id: string, kind: "duplicating" | "deleting", run: () => Promise<Response>) => {
+    setBusy((b) => ({ ...b, [id]: kind }));
+    try {
+      const res = await run();
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? "Something went wrong.");
+      await load();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setBusy((b) => { const { [id]: _, ...rest } = b; return rest; });
+    }
+  };
 
-  async function duplicate(t: Template) {
-    // The list omits the tree, so fetch the full document to copy it.
-    const { tree, iconsResolved } = await (await fetch(`/api/templates?id=${encodeURIComponent(t.id)}`)).json();
-    await fetch("/api/templates", {
+  const remove = (id: string) =>
+    track(id, "deleting", () => fetch(`/api/templates?id=${encodeURIComponent(id)}`, { method: "DELETE" }));
+
+  // The server copies it, so the whole tree doesn't travel to the browser and back.
+  const duplicate = (t: Template) =>
+    track(t.id, "duplicating", () => fetch("/api/templates", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: `${t.name} (copy)`, tree, iconsResolved }),
-    });
-    load();
-  }
+      body: JSON.stringify({ copyOf: t.id }),
+    }));
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -129,8 +139,9 @@ export default function Templates() {
               <ul className="list">
                 {visible.map((t) => {
                   const Icon = templateIcon(t.name);
+                  const state = busy[t.id];
                   return (
-                    <li key={t.id} className="row">
+                    <li key={t.id} className="row" aria-busy={!!state} style={state ? { opacity: 0.6 } : undefined}>
                       <span className="row__icon"><Icon size={26} /></span>
                       <div className="row__body">
                         <h2>{t.name}</h2>
@@ -149,12 +160,14 @@ export default function Templates() {
                         <TemplateDialog template={t} mode="edit" onSaved={load}>
                           <IconEdit size={18} /> Edit
                         </TemplateDialog>
-                        <button className="btn" onClick={() => duplicate(t)}>
-                          <IconCopy size={18} /> Duplicate
+                        <button className="btn" disabled={!!state} onClick={() => duplicate(t)}>
+                          {state === "duplicating"
+                            ? <><IconLoader2 size={18} className="spin" /> Duplicating…</>
+                            : <><IconCopy size={18} /> Duplicate</>}
                         </button>
                         <button className="btn btn--icon btn--danger" aria-label={`Delete ${t.name}`}
-                          onClick={() => remove(t.id)}>
-                          <IconTrash size={18} />
+                          disabled={!!state} onClick={() => remove(t.id)}>
+                          {state === "deleting" ? <IconLoader2 size={18} className="spin" /> : <IconTrash size={18} />}
                         </button>
                       </div>
                     </li>
